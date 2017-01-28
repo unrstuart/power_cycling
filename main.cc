@@ -18,27 +18,28 @@ const SiVar BIKE_WEIGHT = 9 * SiVar::Kilogram();
 
 SiVar ComputeFrontalArea(const SiVar& weight) {
   assert(weight.unit() == SiUnit::Kilogram());
-  const double c = std::min(100.0, std::max(50.0, weight.coef()));
-  return (0.3 + (c - 50) / 50 + 0.3) * SiVar::Meter().Power(2);
+  const double c = std::min(100.0, std::max(50.0, weight.coef())) / 50.0;
+  return (c * 0.3) * SiVar::Meter().Power(2);
+}
+
+SiVar ComputeRolling(const SiVar rider_weight) {
+  return GRAVITY * (rider_weight + BIKE_WEIGHT) *
+         std::cos(std::atan(GRAVITY.coef() / 100)) * ROLLING_COEF;
 }
 
 SiVar ComputeDrag(const SiVar& frontal_area, const SiVar& speed) {
   return 0.5 * frontal_area * DRAG_COEF * AIR_DENSITY * speed * speed;
 }
 
-SiVar ComputeRolling(const SiVar rider_weight) {
-  return GRAVITY * (rider_weight + BIKE_WEIGHT) *
-         std::cos(std::atan(GRAVITY.coef())) * ROLLING_COEF;
-}
-
 int Main() {
   const SiVar rider_weight = 85 * SiVar::Kilogram();
   const SiVar frontal_area = ComputeFrontalArea(rider_weight);
+  printf("front: %s\n", frontal_area.ToString().c_str());
 
   for (int speed_coef = 5; speed_coef <= 50; speed_coef += 5) {
     const SiVar speed = speed_coef * SiVar::KilometersPerHour();
-    const SiVar drag_force = ComputeDrag(frontal_area, speed);
     const SiVar rolling_force = ComputeRolling(rider_weight);
+    const SiVar drag_force = ComputeDrag(frontal_area, speed);
     const SiVar drag_power = drag_force * speed;
     const SiVar rolling_power = rolling_force * speed;
     const SiVar wheel_power = (drag_force + rolling_force) * speed;
