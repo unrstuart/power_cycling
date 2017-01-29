@@ -34,6 +34,17 @@ class TimeSample {
   TimeSample& operator=(const TimeSample&) = default;
   TimeSample& operator=(TimeSample&&) = default;
 
+  bool operator<(const TimeSample& rhs) const { return time_ < rhs.time_; }
+  bool operator==(const TimeSample& rhs) const { return time_ == rhs.time_; }
+  bool operator<(const TimePoint& rhs) const { return time_ < rhs; }
+  bool operator==(const TimePoint& rhs) const { return time_ == rhs; }
+  friend bool operator<(const TimePoint& lhs, const TimeSample& rhs) {
+    return lhs < rhs.time_;
+  }
+  friend bool operator==(const TimePoint& lhs, const TimeSample& rhs) {
+    return lhs == rhs.time_;
+  }
+
   // Returns a new TimeSample with the measurement either replacing the existing
   // measurement of the same type, or added to the TimeSample if a measurement
   // of the same type was not previously present.

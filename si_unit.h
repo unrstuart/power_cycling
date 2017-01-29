@@ -32,6 +32,7 @@ class SiUnit {
 
   std::string ToString() const;
 
+  static SiUnit Unitless();
   static SiUnit Kilogram();
   static SiUnit Meter();
   static SiUnit Second();
@@ -39,6 +40,11 @@ class SiUnit {
   static SiUnit Joule();
   static SiUnit Watt();
   static SiUnit MetersPerSecond();
+
+	using iterator = std::map<SiBaseUnit, int>::const_iterator;
+  iterator begin() const { return units_.cbegin(); }
+  iterator end() const { return units_.cend(); }
+  const std::map<SiBaseUnit, int>& units() const { return units_; }
 
  private:
   // Maps the base unit to an exponent (e.g. {METER, 2} would be square meters).

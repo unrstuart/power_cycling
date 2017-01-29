@@ -1,5 +1,7 @@
 #include "time_series.h"
 
+#include <cassert>
+
 #include <algorithm>
 
 namespace cycling {
@@ -19,11 +21,12 @@ TimeSeries::TimePoint TimeSeries::EndTime() const {
   return samples_.back().time();
 }
 
-void TimeSeries::Visit(const TimePoint& begin, const TimePoint& end, const SampleVisitor& visitor) const {
+void TimeSeries::Visit(const TimePoint& begin, const TimePoint& end,
+                       const SampleVisitor& visitor) const {
   auto b = std::lower_bound(samples_.begin(), samples_.end(), begin);
-  --first;
-  if (first == samples_.end()) first = samples_.begin();
-  auto e = std::lower_bound(first, samples_.end(), end);
+  --b;
+  if (b == samples_.end()) b = samples_.begin();
+  auto e = std::lower_bound(b, samples_.end(), end);
   while (b != e) {
     visitor(*b);
     ++b;

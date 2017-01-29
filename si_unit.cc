@@ -81,6 +81,7 @@ std::string SiUnit::ToString() const {
   return s;
 }
 
+SiUnit SiUnit::Unitless() { return SiBaseUnit::UNITLESS; }
 SiUnit SiUnit::Kilogram() { return SiBaseUnit::KILOGRAM; }
 SiUnit SiUnit::Meter() { return SiBaseUnit::METER; }
 SiUnit SiUnit::Second() { return SiBaseUnit::SECOND; }
