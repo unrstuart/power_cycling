@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <string>
 
 #include "si_base_unit.h"
@@ -25,6 +26,10 @@ SiVar SiVar::KilometersPerHour() { return Kilometer() / Hour(); }
 std::string SiVar::ToString() const {
   if (coef_ == 0) return "0";
   char buf[200];
+  if (unit_ == SiVar::KilometersPerHour().unit_) {
+    sprintf(buf, "%.3f km/h", coef_ * 3.6);
+    return buf;
+  }
   sprintf(buf, "%.3f", coef_);
   const std::string units = unit_.ToString();
   if (units.empty()) return units;

@@ -5,6 +5,8 @@
 
 namespace cycling {
 
+// The seven basic units of SI measurements. A unitless value is also included
+// to mark coefficients and units that have been multiplied by zero.
 enum class SiBaseUnit {
   UNITLESS,
   AMPERE,

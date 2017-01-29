@@ -7,14 +7,22 @@
 
 namespace cycling {
 
-// Holds a collection of SI units.
+// Holds a collection of SI base units and their exponents in order to represent
+// coefficientless measurements (e.g. kg * m/s^2).
 class SiUnit {
  public:
   // Constructs a new SI unit, filtering out UNITLESS, and units with a zero
   // exponent.
+  SiUnit() = default;
+  SiUnit(const SiUnit&) = default;
+  SiUnit(SiUnit&&) = default;
   SiUnit(const std::map<SiBaseUnit, int> units_and_exps);
   SiUnit(SiBaseUnit unit);
   SiUnit(const SiBaseUnit unit, const int exp);
+  ~SiUnit() = default;
+
+  SiUnit& operator=(const SiUnit&) = default;
+  SiUnit& operator=(SiUnit&&) = default;
 
   SiUnit Invert() const;
   SiUnit Power(const int exp) const;

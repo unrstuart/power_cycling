@@ -7,6 +7,10 @@
 
 namespace cycling {
 
+// Represents a numerical value with units (which may be unitless), e.g 9.8
+// m/s^2. For a full list of possible units, please see SiBaseUnit. This class
+// cannot hold a mixture of different units in an expression (e.g. 4 m + 6 s),
+// it can only hold one coefficient combined with one collection of units.
 class SiVar {
  public:
   static SiVar Gram();
@@ -24,7 +28,13 @@ class SiVar {
 
   std::string ToString() const;
 
+  SiVar() : unit_(SiBaseUnit::UNITLESS), coef_(0) {}
   SiVar(const SiUnit& unit);
+  SiVar(const SiVar&) = default;
+  SiVar(SiVar&&) = default;
+
+  SiVar& operator=(const SiVar&) = default;
+  SiVar& operator=(SiVar&&) = default;
 
   SiVar operator+(const SiVar& var) const;
   SiVar& operator+=(const SiVar& var);
@@ -64,4 +74,4 @@ class SiVar {
 
 }  // namespace cycling
 
-#endif // __SI_VAR_H__
+#endif  // __SI_VAR_H__
