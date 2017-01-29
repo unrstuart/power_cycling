@@ -1,4 +1,11 @@
 cc_library(
+    name = "measurement",
+    srcs = ["measurement.cc"],
+    hdrs = ["measurement.h"],
+    deps = [":si_var"],
+)
+
+cc_library(
     name = "si_base_unit",
     srcs = ["si_base_unit.cc"],
     hdrs = ["si_base_unit.h"],
@@ -19,6 +26,23 @@ cc_library(
         ":si_base_unit",
         ":si_unit",
     ]
+)
+
+cc_library(
+    name = "time_sample",
+    srcs = ["time_sample.cc"],
+    hdrs = ["time_sample.h"],
+    deps = [
+        ":measurement",
+        ":si_var",
+    ],
+)
+
+cc_library(
+    name = "time_series",
+    srcs = ["time_series.cc"],
+    hdrs = ["time_series.h"],
+    deps = [":time_sample"],
 )
 
 cc_library(
