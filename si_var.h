@@ -28,8 +28,10 @@ class SiVar {
 
   std::string ToString() const;
 
-  SiVar() : unit_(SiBaseUnit::UNITLESS), coef_(0) {}
-  SiVar(const SiUnit& unit);
+  SiVar() : SiVar(SiBaseUnit::UNITLESS) {}
+  SiVar(const double coef) : SiVar(SiBaseUnit::UNITLESS, coef) {}
+  SiVar(const SiUnit& unit) : SiVar(unit, /*coef=*/0) {}
+  SiVar(const SiUnit& unit, const double coef);
   SiVar(const SiVar&) = default;
   SiVar(SiVar&&) = default;
 
@@ -44,11 +46,14 @@ class SiVar {
   SiVar operator*(const double d) const;
   friend SiVar operator*(const SiUnit& unit, const SiVar& var);
   friend SiVar operator*(const double d, const SiVar& var);
+  SiVar& operator*=(const double d);
+  SiVar& operator*=(const SiVar& v);
   SiVar operator/(const SiVar& unit) const;
+  SiVar operator/(const double d) const;
   friend SiVar operator/(const SiUnit& unit, const SiVar& var);
   friend SiVar operator/(const double d, const SiVar& unit);
-  SiVar operator/(const double d) const;
   SiVar& operator/=(const double d);
+  SiVar& operator/=(const SiVar& v);
   SiVar Invert() const;
   SiVar Power(const int power) const;
   SiVar Abs() const;
@@ -56,6 +61,7 @@ class SiVar {
   bool operator<(const SiVar& rhs) const { return Compare(rhs) < 0; }
   bool operator>(const SiVar& rhs) const { return Compare(rhs) > 0; }
   bool operator==(const SiVar& rhs) const { return Compare(rhs) == 0; }
+  bool operator!=(const SiVar& rhs) const { return Compare(rhs) != 0; }
 
   double coef() const { return coef_; }
   const SiUnit& unit() const { return unit_; }
@@ -63,9 +69,11 @@ class SiVar {
   void set_coef(const double coef) { coef_ = coef; }
   void set_unit(const SiUnit& unit) { unit_ = unit; }
 
- private:
-  SiVar(const SiUnit& unit, const double coef);
+  friend std::ostream& operator<<(std::ostream& out, const SiVar& rhs) {
+    return out << rhs.ToString();
+  }
 
+ private:
   int Compare(const SiVar& rhs) const;
 
   SiUnit unit_;

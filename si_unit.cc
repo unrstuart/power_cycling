@@ -4,7 +4,7 @@
 
 namespace cycling {
 
-SiUnit::SiUnit(const std::map<SiBaseUnit, int> units_and_exps)
+SiUnit::SiUnit(const std::map<SiBaseUnit, int>& units_and_exps)
     : units_(units_and_exps) {
   auto it = units_.find(SiBaseUnit::UNITLESS);
   if (it != units_.end()) units_.erase(it);
@@ -41,8 +41,18 @@ SiUnit SiUnit::operator*(const SiUnit& rhs) const {
   return ret;
 }
 
+SiUnit SiUnit::operator*=(const SiUnit& rhs) {
+  *this = *this * rhs;
+  return *this;
+}
+
 SiUnit SiUnit::operator/(const SiUnit& rhs) const {
   return *this * rhs.Invert();
+}
+
+SiUnit SiUnit::operator/=(const SiUnit& rhs) {
+  *this = *this / rhs.Invert();
+  return *this;
 }
 
 SiUnit SiUnit::Power(const int exp) const {

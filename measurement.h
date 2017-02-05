@@ -1,6 +1,7 @@
 #ifndef __MEASUREMENT_H__
 #define __MEASUREMENT_H__
 
+#include <iostream>
 #include <string>
 
 #include "si_var.h"
@@ -26,12 +27,33 @@ class Measurement {
     GEAR,
     // The total distance covered up to, and including, this sample.
     TOTAL_DISTANCE,
-    // The total calories burned thus far, up to and including this sample.
-    TOTAL_CALORIES,
+    // The total joules burned thus far, up to and including this sample.
+    TOTAL_JOULES,
   };
 
-  Measurement(const Type type, const SiVar value)
-      : type_(type), value_(value) {}
+  // Constructs a new measurement with the appropriate units. coef is for the
+  // base unit of the measurement type. E.g. for SPEED, coef is interpreted as
+  // m/s, not km/h.
+  Measurement(const Type type, const double coef);
+
+  // Same as above, but uses the units supplied in var. asserts that the units
+  // are correct.
+  Measurement(const Type type, const SiVar& var);
+  Measurement(const Measurement&) = default;
+  Measurement(Measurement&&) = default;
+  Measurement& operator=(const Measurement&) = default;
+  Measurement& operator=(Measurement&&) = default;
+
+  bool operator==(const Measurement& rhs) const;
+  bool operator!=(const Measurement& rhs) const;
+  bool operator<(const Measurement& rhs) const;
+  bool operator>(const Measurement& rhs) const;
+  bool operator<=(const Measurement& rhs) const;
+  bool operator>=(const Measurement& rhs) const;
+
+  friend std::ostream& operator<<(std::ostream& lhs, const Measurement& rhs) {
+    return lhs << rhs.ToString();
+  }
 
   std::string ToString() const;
 

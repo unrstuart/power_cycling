@@ -36,8 +36,6 @@ std::string SiVar::ToString() const {
   return buf + (" " + units);
 }
 
-SiVar::SiVar(const SiUnit& unit) : unit_(unit), coef_(1.0) {}
-
 SiVar SiVar::operator+(const SiVar& var) const {
   assert(unit_ == var.unit_);
   return SiVar(unit_, coef_ + var.coef_);
@@ -65,6 +63,17 @@ SiVar operator*(const SiUnit& unit, const SiVar& var) {
 SiVar operator*(const double d, const SiVar& var) {
   return SiVar(var.unit_, var.coef_ * d);
 }
+  
+SiVar& SiVar::operator*=(const double d) {
+  coef_ *= d;
+  return *this;
+}
+
+SiVar& SiVar::operator*=(const SiVar& v) {
+  coef_ *= v.coef_;
+  unit_ *= v.unit_;
+  return *this;
+}
 
 SiVar SiVar::operator/(const SiVar& unit) const {
   return *this * unit.Invert();
@@ -82,6 +91,12 @@ SiVar SiVar::operator/(const double d) const { return SiVar(unit_, coef_ / d); }
 
 SiVar& SiVar::operator/=(const double d) {
   coef_ /= d;
+  return *this;
+}
+
+SiVar& SiVar::operator/=(const SiVar& v) {
+  coef_ /= v.coef_;
+  unit_ /= v.unit_;
   return *this;
 }
 

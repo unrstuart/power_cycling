@@ -6,6 +6,11 @@
 
 namespace cycling {
 
+void TimeSeries::Add(const TimeSample& sample) {
+  TimeSample s(sample);
+  Add(std::move(s));
+}
+
 void TimeSeries::Add(TimeSample&& sample) {
   assert(samples_.empty() || sample.time() > samples_.back().time());
   samples_.push_back(sample);
@@ -22,9 +27,20 @@ TimeSeries::TimePoint TimeSeries::EndTime() const {
 }
 
 void TimeSeries::Visit(const TimePoint& begin, const TimePoint& end,
+                       const Measurement::Type type,
+                       const MeasurementVisitor& visitor) const {
+  auto b = std::lower_bound(samples_.begin(), samples_.end(), begin);
+  if (b == samples_.end()) b = samples_.begin();
+  auto e = std::lower_bound(b, samples_.end(), end);
+  while (b != e) {
+    if (b->has_value(type)) visitor(b->time(), b->value(type).coef());
+    ++b;
+  }
+}
+
+void TimeSeries::Visit(const TimePoint& begin, const TimePoint& end,
                        const SampleVisitor& visitor) const {
   auto b = std::lower_bound(samples_.begin(), samples_.end(), begin);
-  --b;
   if (b == samples_.end()) b = samples_.begin();
   auto e = std::lower_bound(b, samples_.end(), end);
   while (b != e) {

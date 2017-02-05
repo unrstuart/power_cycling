@@ -2,6 +2,7 @@
 #define __TIME_SAMPLE_H__
 
 #include <chrono>
+#include <iostream>
 #include <map>
 #include <vector>
 
@@ -25,6 +26,8 @@ class TimeSample {
 
   TimeSample(const TimePoint& time);
 
+  TimeSample(const TimePoint& time, const Measurement& measurements);
+
   TimeSample(const TimePoint& time,
              const std::vector<Measurement>& measurements);
 
@@ -34,16 +37,14 @@ class TimeSample {
   TimeSample& operator=(const TimeSample&) = default;
   TimeSample& operator=(TimeSample&&) = default;
 
-  bool operator<(const TimeSample& rhs) const { return time_ < rhs.time_; }
-  bool operator==(const TimeSample& rhs) const { return time_ == rhs.time_; }
-  bool operator<(const TimePoint& rhs) const { return time_ < rhs; }
-  bool operator==(const TimePoint& rhs) const { return time_ == rhs; }
-  friend bool operator<(const TimePoint& lhs, const TimeSample& rhs) {
-    return lhs < rhs.time_;
-  }
-  friend bool operator==(const TimePoint& lhs, const TimeSample& rhs) {
-    return lhs == rhs.time_;
-  }
+  bool operator==(const TimeSample& rhs) const;
+  bool operator!=(const TimeSample& rhs) const;
+  bool operator<(const TimeSample& rhs) const;
+  bool operator>(const TimeSample& rhs) const;
+  bool operator<=(const TimeSample& rhs) const;
+  bool operator>=(const TimeSample& rhs) const;
+
+  friend std::ostream& operator<<(std::ostream& lhs, const TimeSample& rhs);
 
   // Returns a new TimeSample with the measurement either replacing the existing
   // measurement of the same type, or added to the TimeSample if a measurement
@@ -51,6 +52,8 @@ class TimeSample {
   TimeSample Add(const Measurement& m) const;
 
   const TimePoint& time() const { return time_; }
+
+  bool has_value(const Measurement::Type type) const;
 
   SiVar value(const Measurement::Type type) const;
 
@@ -68,6 +71,10 @@ class TimeSample::const_iterator {
  public:
   using base_map = std::map<Measurement::Type, SiVar>;
   using base_iterator = base_map::const_iterator;
+  
+  const_iterator(const base_iterator& it) : it_(it) {}
+  const_iterator(const const_iterator& it) : it_(it.it_) {}
+  const_iterator(const_iterator&& it) : it_(it.it_) {}
 
   bool operator==(const const_iterator& rhs) const { return it_ == rhs.it_; }
   bool operator!=(const const_iterator& rhs) const { return it_ != rhs.it_; }
@@ -83,10 +90,6 @@ class TimeSample::const_iterator {
   const base_map::value_type* operator->() const { return it_.operator->(); }
 
  private:
-  const_iterator(const base_iterator& it) : it_(it) {}
-  const_iterator(const const_iterator& it) : it_(it.it_) {}
-  const_iterator(const_iterator&& it) : it_(it.it_) {}
-
   base_iterator it_;
 };
 

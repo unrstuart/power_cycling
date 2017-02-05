@@ -1,6 +1,8 @@
 #include "measurement.h"
 
+#include <cassert>
 #include <cstdio>
+
 #include <string>
 
 namespace cycling {
@@ -21,6 +23,55 @@ std::string ItoA(const int i) {
 
 }  // namespace
 
+Measurement::Measurement(const Type type, const double coef) : type_(type) {
+  switch (type) {
+    case NO_TYPE:
+    case HEART_RATE:
+    case HRV:
+    case CADENCE:
+    case GEAR:
+      value_ = SiVar(SiBaseUnit::UNITLESS, coef);
+      break;
+    case SPEED:
+      value_ = SiVar(SiUnit::MetersPerSecond(), coef);
+      break;
+    case POWER:
+      value_ = SiVar(SiUnit::Watt(), coef);
+      break;
+    case TOTAL_DISTANCE:
+      value_ = SiVar(SiUnit::Meter(), coef);
+      break;
+    case TOTAL_JOULES:
+      value_ = SiVar(SiUnit::Joule(), coef);
+      break;
+  }
+}
+
+Measurement::Measurement(const Type type, const SiVar& var)
+    : type_(type), value_(var) {
+  switch (type) {
+    case NO_TYPE:
+    case HEART_RATE:
+    case HRV:
+    case CADENCE:
+    case GEAR:
+      assert(value_.unit() == SiBaseUnit::UNITLESS);
+      break;
+    case SPEED:
+      assert(value_.unit() == SiUnit::MetersPerSecond());
+      break;
+    case POWER:
+      assert(value_.unit() == SiUnit::Watt());
+      break;
+    case TOTAL_DISTANCE:
+      assert(value_.unit() == SiUnit::Meter());
+      break;
+    case TOTAL_JOULES:
+      assert(value_.unit() == SiUnit::Joule());
+      break;
+  }
+}
+
 std::string Measurement::ToString() const {
   switch (type_) {
     case NO_TYPE:
@@ -39,9 +90,29 @@ std::string Measurement::ToString() const {
       return "gear " + ItoA(static_cast<int>(value_.coef()));
     case TOTAL_DISTANCE:
       return DtoA(value_.coef() / 1000.0) + " km";
-    case TOTAL_CALORIES:
+    case TOTAL_JOULES:
       return DtoA(value_.coef() / 4.814) + " total kCal";
   }
+}
+
+bool Measurement::operator==(const Measurement& rhs) const {
+  return type_ == rhs.type_ && value_ == rhs.value_;
+}
+bool Measurement::operator!=(const Measurement& rhs) const {
+  return !(*this == rhs);
+}
+bool Measurement::operator<(const Measurement& rhs) const {
+  if (type_ != rhs.type_) return type_ < rhs.type_;
+  return value_ < rhs.value_;
+}
+bool Measurement::operator>(const Measurement& rhs) const {
+  return rhs < *this;
+}
+bool Measurement::operator<=(const Measurement& rhs) const {
+  return !(*this > rhs);
+}
+bool Measurement::operator>=(const Measurement& rhs) const {
+  return !(*this < rhs);
 }
 
 }  // namespace cycling

@@ -1,6 +1,7 @@
 #ifndef __SI_UNIT_H__
 #define __SI_UNIT_H__
 
+#include <iostream>
 #include <map>
 
 #include "si_base_unit.h"
@@ -16,7 +17,7 @@ class SiUnit {
   SiUnit() = default;
   SiUnit(const SiUnit&) = default;
   SiUnit(SiUnit&&) = default;
-  SiUnit(const std::map<SiBaseUnit, int> units_and_exps);
+  SiUnit(const std::map<SiBaseUnit, int>& units_and_exps);
   SiUnit(SiBaseUnit unit);
   SiUnit(const SiBaseUnit unit, const int exp);
   ~SiUnit() = default;
@@ -27,8 +28,11 @@ class SiUnit {
   SiUnit Invert() const;
   SiUnit Power(const int exp) const;
   SiUnit operator*(const SiUnit& rhs) const;
+  SiUnit operator*=(const SiUnit& rhs);
   SiUnit operator/(const SiUnit& rhs) const;
+  SiUnit operator/=(const SiUnit& rhs);
   bool operator==(const SiUnit& rhs) const;
+  bool operator!=(const SiUnit& rhs) const { return !operator==(rhs); }
 
   std::string ToString() const;
 
@@ -41,10 +45,14 @@ class SiUnit {
   static SiUnit Watt();
   static SiUnit MetersPerSecond();
 
-	using iterator = std::map<SiBaseUnit, int>::const_iterator;
+  using iterator = std::map<SiBaseUnit, int>::const_iterator;
   iterator begin() const { return units_.cbegin(); }
   iterator end() const { return units_.cend(); }
   const std::map<SiBaseUnit, int>& units() const { return units_; }
+
+  friend std::ostream& operator<<(std::ostream& out, const SiUnit& unit) {
+    return out << unit.ToString();
+  }
 
  private:
   // Maps the base unit to an exponent (e.g. {METER, 2} would be square meters).
