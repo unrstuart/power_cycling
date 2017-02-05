@@ -1,4 +1,5 @@
 #include <chrono>
+#include <map>
 
 #include "measurement.h"
 #include "time_series.h"
@@ -16,43 +17,43 @@ namespace cycling {
 // is in the current window and, if transitioning, the next window. Anything
 // behind the current data is drawn, but might be clipped.
 //
-// Simultaneous calls to Draw() are thread safe, however
+// This class is thread safe.
 class Grapher {
  public:
   using Duration = std::chrono::duration;
   using TimePoint = TimeSample::TimePoint;
 
-  struct Window {
-    // The time at which to start graphing.
-    const TimePoint start;
-    // The amount of time to display.
-    const Duration width;
-    // By how much the graph unit should slide with each input.
-    const Duration increment;
-    // How far behind the "width" we should graph.
-    const Duration look_behind;
-  };
-
   // Creates a new grapher using the given time-window parameters. No tranfer of
   // ownership.
-  Grapher(const Window& window, const TimePoint& start_time);
+  Grapher(const TimePoint& start, const TimePoint& width,
+          const TimePoint& increment, const TimePoint& look_behind);
   ~Grapher() = default;
-
-  // Moves the view window over by one unit.
-  bool MoveToNext();
 
   // stage is clamped to [0,1]. At 0, this object graphs with the contents
   // locked in the given window. At 1, this object graphs with the contents
   // locked in the window advanced by one unit.
   //
+  // Given the scale and bounds of the numbers being graphed, this class
+  // attempts to draw horizontal lines as appropriate. The vertical locations
+  // and the labels are set in labels (if not null). The labels aren't actually
+  // drawn, they are merely provided as a convenience so the user may draw the
+  // labels, if they so choose.
+  //
+  // All values are pre-multiplied by coef, which comes in handy when the values
+  // being graphed have units different from their SI representative (e.g. one
+  // wishes to graph km/h instead of m/s).
+  //
   // The output graph is in the space x=[0,1],y=[0,1]. Any scaling must be done
   // outside by callers of this function.
-  void Draw(const TimeSeries& series, const Measurement::Type type,
-            const double stage) const;
+  void Draw(const TimeSeries& series, const TimePoint& current_time,
+            const Measurement::Type type, const double coef, const double stage,
+            std::map<double, double>* labels) const;
 
  private:
-  Window window_;
-  TimePoint current_time_;
+  const TimePoint start_;
+  const TimePoint width_;
+  const TimePoint increment_;
+  const TimePoint look_behind_;
 };
 
 }  // namespace cycling
