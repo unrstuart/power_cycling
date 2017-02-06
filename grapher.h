@@ -1,5 +1,6 @@
 #include <chrono>
 #include <map>
+#include <vector>
 
 #include "measurement.h"
 #include "time_series.h"
@@ -11,11 +12,11 @@ namespace cycling {
 //
 // The graph scales dynamically with the displayed content, and this
 // class has support to smoothly transition from one graph size to the next (if
-// in the appropriate mode). See Draw() for details.
+// in the appropriate mode). See Plot() for details.
 //
 // The dimensions of the graph in the metric's space are only affected by what
-// is in the current window and, if transitioning, the next window. Anything
-// behind the current data is drawn, but might be clipped.
+// is in the current window and, if transitioning, the next window, including
+// look behind.
 //
 // This class is thread safe.
 class Grapher {
@@ -23,10 +24,33 @@ class Grapher {
   using Duration = std::chrono::duration;
   using TimePoint = TimeSample::TimePoint;
 
+  // A single point to be graphed in logical space (x and y in [0,1]).
+  struct Point {
+    double x, y;
+  };
+
+  // The result of a call to Plot.
+  struct Graph {
+    // The minimum time value plotted. Not necessarily the value of any of the
+    // points plotted.
+    TimePoint min_x;
+    // The maximum time value plotted. Not necessarily the value of any of the
+    // points plotted.
+    TimePoint max_x;
+    // The minimum y value displayed.
+    double min_y;
+    // The maximum y value displayed.
+    double max_y;
+    // Labels of coefficients that can be displayed on the y-axis.
+    std::map<double, int> labels;
+    // The points to be plotted. first=x, second=y.
+    std::vector<Point> points;
+  };
+
   // Creates a new grapher using the given time-window parameters. No tranfer of
   // ownership.
-  Grapher(const TimePoint& start, const TimePoint& width,
-          const TimePoint& increment, const TimePoint& look_behind);
+  Grapher(const TimePoint& width, const TimePoint& increment,
+          const TimePoint& look_behind);
   ~Grapher() = default;
 
   // stage is clamped to [0,1]. At 0, this object graphs with the contents
@@ -45,12 +69,11 @@ class Grapher {
   //
   // The output graph is in the space x=[0,1],y=[0,1]. Any scaling must be done
   // outside by callers of this function.
-  void Draw(const TimeSeries& series, const TimePoint& current_time,
-            const Measurement::Type type, const double coef, const double stage,
-            std::map<double, double>* labels) const;
+  Graph Plot(const TimeSeries& series, const TimePoint& current_time,
+             const Measurement::Type type, const double coef,
+             const double stage) const;
 
  private:
-  const TimePoint start_;
   const TimePoint width_;
   const TimePoint increment_;
   const TimePoint look_behind_;
