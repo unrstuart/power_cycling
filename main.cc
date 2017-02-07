@@ -3,8 +3,14 @@
 #include <cstdio>
 
 #include <algorithm>
+#include <chrono>
+#include <map>
+#include <vector>
 
+#include "grapher.h"
+#include "measurement.h"
 #include "si_var.h"
+#include "time_series.h"
 
 namespace cycling {
 namespace {
@@ -76,6 +82,56 @@ SiVar ComputeSpeed(const SiVar& power, const SiVar& rider_weight,
   return speed;
 }
 
+void DumpTimeSeries() {
+  using Duration = std::chrono::system_clock::duration;
+  using Time = std::chrono::system_clock::time_point;
+
+  const double kMinHr = 39;
+  const double kMaxHr = 185;
+  const double kSamplePeriod = 100;
+  const int kNumSamples = 1200;
+  const Duration kWindow = std::chrono::seconds(30);
+  const Duration kIncrement = std::chrono::seconds(1);
+  const Duration kLookBehind = std::chrono::seconds(3);
+  const int kNumFrames = 30;
+
+  TimeSeries time_series;
+  const Time start = std::chrono::system_clock::now();
+
+  for (int i = 0; i < kNumSamples; ++i) {
+    const double hr =
+        kMinHr + (kMaxHr - kMinHr) * std::sin(M_PI * (i / kPeriod) * 2);
+    time_series.Add(TimeSample(now + std::chrono::seconds(i),
+                               Measurement(Measurement::HEART_RATE, hr)));
+  }
+  
+  FILE* fp = fopen("time_series.out", "w");
+
+  Grapher grapher(kWindow, kIncrement, kLookBehind);
+
+  for (int i = 0; i < kNumSamples; ++i) {
+    for (int frame = 0; frame < kNumFrames; ++frame) {
+      Grapher::Graph graph = grapher.Plot(
+          series, now + std::chrono::seconds(i), Measurement::HEART_RATE, 1.0,
+          frame / static_cast<double>(kNumFrames));
+      int num_labels = graph.labels.size();
+      int num_points = graph.points.size();
+
+      fwrite(&num_labels, sizeof(num_labels), 1, fp);
+      fwrite(&num_points, sizeof(num_points), 1, fp);
+      for (const auto& label : graph.labels) {
+        fwrite(&label.first, sizeof(label.first), 1, fp);
+        fwrite(&label.second, sizeof(label.second), 1, fp);
+      }
+      for (const auto& point : graph.points) {
+        fwrite(&point.x, sizeof(point.x), 1, fp);
+        fwrite(&point.y, sizeof(point.y), 1, fp);
+      }
+    }
+  }
+  fclose(fp);
+}
+
 int Main() {
   const SiVar rider_weight = 85 * SiVar::Kilogram();
 
@@ -87,6 +143,7 @@ int Main() {
     printf("power: %9s speed: %11s\n", power.ToString().c_str(),
            speed.ToString().c_str());
   }
+
   return 0;
 }
 

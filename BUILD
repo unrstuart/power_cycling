@@ -14,6 +14,18 @@ cc_library(
 )
 
 cc_library(
+    name = "main",
+    srcs = ["main.cc"],
+    deps = [
+        ":grapher",
+        ":measurement",
+        ":si_unit",
+        ":si_var",
+        ":time_series",
+    ],
+)
+
+cc_library(
     name = "measurement",
     srcs = ["measurement.cc"],
     hdrs = ["measurement.h"],
@@ -58,15 +70,6 @@ cc_library(
     srcs = ["time_series.cc"],
     hdrs = ["time_series.h"],
     deps = [":time_sample"],
-)
-
-cc_library(
-    name = "main",
-    srcs = ["main.cc"],
-    deps = [
-        ":si_unit",
-        ":si_var",
-    ],
 )
 
 cc_library(
@@ -132,6 +135,16 @@ cc_library(
     ],
     linkopts = ["-pthread"],
     visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "grapher_test",
+    srcs = ["grapher_test.cc"],
+    deps = [
+        ":grapher",
+        ":gtest",
+        ":time_series",
+    ],
 )
 
 cc_test(

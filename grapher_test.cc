@@ -11,7 +11,7 @@
 namespace cycling {
 namespace {
 
-using Duration = std::chrono::duration;
+using Duration = std::chrono::system_clock::duration;
 using Time = std::chrono::system_clock::time_point;
 
 const double kMinHr = 39;
@@ -21,10 +21,11 @@ const Duration kWindow = std::chrono::seconds(30);
 const Duration kIncrement = std::chrono::seconds(1);
 const Duration kLookBehind = std::chrono::seconds(3);
 const int kNumFrames = 30;
+const int kNumSamples = 1200;
 
 TEST(GrapherTest, Plot) {
   TimeSeries time_series;
-  const TimePoint start = std::chrono::system_clock::now();
+  const Time start = std::chrono::system_clock::now();
 
   for (int i = 0; i < kNumSamples; ++i) {
     const double hr =
