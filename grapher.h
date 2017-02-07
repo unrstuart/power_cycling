@@ -21,7 +21,7 @@ namespace cycling {
 // This class is thread safe.
 class Grapher {
  public:
-  using Duration = std::chrono::duration;
+  using Duration = std::chrono::system_clock::duration;
   using TimePoint = TimeSample::TimePoint;
 
   // A single point to be graphed in logical space (x and y in [0,1]).
@@ -49,8 +49,8 @@ class Grapher {
 
   // Creates a new grapher using the given time-window parameters. No tranfer of
   // ownership.
-  Grapher(const TimePoint& width, const TimePoint& increment,
-          const TimePoint& look_behind);
+  Grapher(const Duration& width, const Duration& increment,
+          const Duration& look_behind);
   ~Grapher() = default;
 
   // stage is clamped to [0,1]. At 0, this object graphs with the contents
@@ -74,9 +74,9 @@ class Grapher {
              const double stage) const;
 
  private:
-  const TimePoint width_;
-  const TimePoint increment_;
-  const TimePoint look_behind_;
+  const Duration width_;
+  const Duration increment_;
+  const Duration look_behind_;
 };
 
 }  // namespace cycling

@@ -27,40 +27,51 @@ std::map<double, int> GetLabels(const double min, const double max,
   const int spacing = static_cast<int>(std::pow(10, diff_exp));
 
   const double buffer_below_min =
-      (min >= 0 ? std::fmod(min, spacing)
-                : spacing - std::fmod(-imin, spacing));
+      (min >= 0 ? std::fmod(min, spacing) : spacing - std::fmod(-min, spacing));
   const double buffer_above_max =
-      (shifted_max >= 0 ? spacing - std::fmod(imax, spacing)
-                        : std::fmod(-imax, spacing));
+      (shifted_max >= 0 ? spacing - std::fmod(shifted_max, spacing)
+                        : std::fmod(-shifted_max, spacing));
   *used_min = min - buffer_below_min -
               (std::fmod(std::floor(min), spacing) == 0 ? spacing : 0);
   *used_max = shifted_max + buffer_above_max +
               (std::fmod(std::ceil(shifted_max), spacing) == 0 ? spacing : 0);
 
+  std::map<double, int> labels;
   for (int i = static_cast<int>(*used_min);
        i < static_cast<int>(*used_max) + spacing; i += spacing) {
     labels[(i - *used_min) / (*used_max - *used_min)] = i;
   }
+  return labels;
+}
+
+Grapher::Duration DurationMul(const Grapher::Duration& d, const double c) {
+  auto t = std::chrono::duration_cast<std::chrono::duration<double>>(d) * c;
+  return std::chrono::duration_cast<Grapher::Duration>(t);
+}
+
+Grapher::Duration DurationMul(const double c, const Grapher::Duration& d) {
+  return DurationMul(d, c);
 }
 
 }  // namespace
 
-Grapher::Grapher(const TimePoint& start, const TimePoint& width,
-                 const TimePoint& increment, const TimePoint& look_behind)
+Grapher::Grapher(const Duration& width, const Duration& increment,
+                 const Duration& look_behind)
     : width_(width), increment_(increment), look_behind_(look_behind) {}
 
-Grapher::Graph Grapher::Draw(const TimeSeries& series, const TimePoint& start,
+Grapher::Graph Grapher::Plot(const TimeSeries& series, const TimePoint& start,
                              const Measurement::Type type, const double coef,
                              const double stage) const {
-  Graph graph = {start, start + window, 0, 1};
+  Graph graph = {start, start + width_, 0, 1};
   std::map<TimePoint, double> data;
 
-  const TimePoint bbox_min = start + std::floor(stage) * increment_;
-  const TimePoint bbox_max = start + window_ + std::ceil(stage) * increment_;
+  const TimePoint bbox_min = start + DurationMul(std::floor(stage), increment_);
+  const TimePoint bbox_max =
+      start + width_ + DurationMul(std::ceil(stage), increment_);
   double min = -1, max = -1;
 
-  series.Visit(start - look_behind_ + increment * stage,
-               start + window + increment * stage, type,
+  series.Visit(start - look_behind_ + DurationMul(increment_, stage),
+               start + width_ + DurationMul(increment_, stage), type,
                [&](const TimePoint& time, const double value) {
                  const double d = value * coef;
                  data[time] = d;
@@ -78,10 +89,10 @@ Grapher::Graph Grapher::Draw(const TimeSeries& series, const TimePoint& start,
   graph.max_y = max;
 
   for (const auto& p : data) {
-    graph->points.push_back(
-        (p.first - bbox_min).count() /
-            static_cast<double>((bbox_max - bbox_min).count()),
-        (p.second - used_min) / (used_max - used_min));
+    graph.points.push_back(
+        {(p.first - bbox_min).count() /
+             static_cast<double>((bbox_max - bbox_min).count()),
+         (p.second - used_min) / (used_max - used_min)});
   }
 
   return graph;
