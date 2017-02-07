@@ -26,7 +26,7 @@ class TimeSample {
 
   TimeSample(const TimePoint& time);
 
-  TimeSample(const TimePoint& time, const Measurement& measurements);
+  TimeSample(const TimePoint& time, const Measurement& measurement);
 
   TimeSample(const TimePoint& time,
              const std::vector<Measurement>& measurements);

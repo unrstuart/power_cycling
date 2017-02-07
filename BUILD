@@ -4,6 +4,16 @@ cc_binary(
 )
 
 cc_library(
+    name = "grapher",
+    srcs = ["grapher.cc"],
+    hdrs = ["grapher.h"],
+    deps = [
+        ":measurement",
+        ":time_series",
+    ],
+)
+
+cc_library(
     name = "measurement",
     srcs = ["measurement.cc"],
     hdrs = ["measurement.h"],
@@ -30,7 +40,7 @@ cc_library(
     deps = [
         ":si_base_unit",
         ":si_unit",
-    ]
+    ],
 )
 
 cc_library(
@@ -54,29 +64,30 @@ cc_library(
     name = "main",
     srcs = ["main.cc"],
     deps = [
-        ":si_var",
         ":si_unit",
-    ]
+        ":si_var",
+    ],
 )
 
 cc_library(
     name = "gtest",
     srcs = [
+        "gmock.cc",
         "gmock-cardinalities.cc",
         "gmock-internal-utils.cc",
         "gmock-matchers.cc",
         "gmock-spec-builders.cc",
-        "gmock.cc",
         "gmock_main.cc",
+        "gtest.cc",
         "gtest-death-test.cc",
         "gtest-filepath.cc",
         "gtest-port.cc",
         "gtest-printers.cc",
         "gtest-test-part.cc",
         "gtest-typed-test.cc",
-        "gtest.cc",
     ],
     hdrs = [
+        "gmock/gmock.h",
         "gmock/gmock-actions.h",
         "gmock/gmock-cardinalities.h",
         "gmock/gmock-generated-actions.h",
@@ -87,7 +98,6 @@ cc_library(
         "gmock/gmock-more-actions.h",
         "gmock/gmock-more-matchers.h",
         "gmock/gmock-spec-builders.h",
-        "gmock/gmock.h",
         "gmock/internal/custom/gmock-generated-actions.h",
         "gmock/internal/custom/gmock-matchers.h",
         "gmock/internal/custom/gmock-port.h",
@@ -95,6 +105,7 @@ cc_library(
         "gmock/internal/gmock-internal-utils.h",
         "gmock/internal/gmock-port.h",
         "gtest-internal-inl.h",
+        "gtest/gtest.h",
         "gtest/gtest-death-test.h",
         "gtest/gtest-message.h",
         "gtest/gtest-param-test.h",
@@ -102,20 +113,19 @@ cc_library(
         "gtest/gtest-spi.h",
         "gtest/gtest-test-part.h",
         "gtest/gtest-typed-test.h",
-        "gtest/gtest.h",
         "gtest/gtest_pred_impl.h",
         "gtest/gtest_prod.h",
+        "gtest/internal/custom/gtest.h",
         "gtest/internal/custom/gtest-port.h",
         "gtest/internal/custom/gtest-printers.h",
-        "gtest/internal/custom/gtest.h",
         "gtest/internal/gtest-death-test-internal.h",
         "gtest/internal/gtest-filepath.h",
         "gtest/internal/gtest-internal.h",
         "gtest/internal/gtest-linked_ptr.h",
-        "gtest/internal/gtest-param-util-generated.h",
         "gtest/internal/gtest-param-util.h",
-        "gtest/internal/gtest-port-arch.h",
+        "gtest/internal/gtest-param-util-generated.h",
         "gtest/internal/gtest-port.h",
+        "gtest/internal/gtest-port-arch.h",
         "gtest/internal/gtest-string.h",
         "gtest/internal/gtest-tuple.h",
         "gtest/internal/gtest-type-util.h",
@@ -128,9 +138,9 @@ cc_test(
     name = "measurement_test",
     srcs = ["measurement.cc"],
     deps = [
+        ":gtest",
         ":measurement",
         ":si_unit",
-        ":gtest",
     ],
 )
 
@@ -138,8 +148,8 @@ cc_test(
     name = "si_base_unit_test",
     srcs = ["si_base_unit_test.cc"],
     deps = [
-        ":si_base_unit",
         ":gtest",
+        ":si_base_unit",
     ],
 )
 
@@ -147,9 +157,9 @@ cc_test(
     name = "si_unit_test",
     srcs = ["si_unit_test.cc"],
     deps = [
-        ":si_unit",
-        ":si_base_unit",
         ":gtest",
+        ":si_base_unit",
+        ":si_unit",
     ],
 )
 
@@ -157,10 +167,10 @@ cc_test(
     name = "si_var_test",
     srcs = ["si_var_test.cc"],
     deps = [
-				":si_var",
-        ":si_unit",
-        ":si_base_unit",
         ":gtest",
+        ":si_base_unit",
+        ":si_unit",
+        ":si_var",
     ],
 )
 
@@ -168,9 +178,9 @@ cc_test(
     name = "time_sample_test",
     srcs = ["time_sample_test.cc"],
     deps = [
+        ":gtest",
         ":measurement",
         ":time_sample",
-        ":gtest",
     ],
 )
 
@@ -178,9 +188,9 @@ cc_test(
     name = "time_series_test",
     srcs = ["time_series_test.cc"],
     deps = [
+        ":gtest",
         ":measurement",
         ":time_sample",
         ":time_series",
-        ":gtest",
     ],
 )
