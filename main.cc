@@ -90,12 +90,17 @@ void DumpTimeSeries() {
   const int kNumFrames = 30;
 
   TimeSeries time_series;
-  const Time start = std::chrono::system_clock::now();
+  const Time start = std::chrono::system_clock::from_time_t(0);
 
   for (int i = 0; i < kNumSamples; ++i) {
-    const double hr =
-        kMinHr + (kMaxHr - kMinHr) * std::sin(M_PI * (i / kSamplePeriod) * 2);
-    time_series.Add(TimeSample(start + std::chrono::seconds(i),
+    double hr;
+    if (false) {
+      hr = i;
+    } else {
+      hr = kMinHr + (kMaxHr - kMinHr) / 2.0 +
+           (kMaxHr - kMinHr) * std::sin(M_PI * (i / kSamplePeriod) * 2) / 2.0;
+    }
+    time_series.Add(TimeSample(start + std::chrono::milliseconds(i * 1000),
                                Measurement(Measurement::HEART_RATE, hr)));
   }
 

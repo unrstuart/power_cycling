@@ -1,6 +1,7 @@
 #include "grapher.h"
 
 #include <cmath>
+#include <cstdlib>
 
 #include <algorithm>
 #include <map>
@@ -12,45 +13,54 @@ namespace cycling {
 
 namespace {
 
+std::map<double, int> GetLabels(const double min, const double max,
+                                const int spacing) {
+  std::map<double, int> labels;
+  for (int i = -1000; i <= max; i += spacing) {
+    if (i >= min) labels[(i - min) / (max - min)] = i;
+  }
+  return labels;
+}
+
 // Returns the labels along the y-axis that should be used to display the graph
 // between min and max. Stores the values of the min and max values displayed in
 // used_min and used_max respectively.
 std::map<double, int> GetLabels(const double min, const double max,
                                 double* used_min, double* used_max) {
-  if (min == max && min == -1) {
-    return {{0.0, 0}, {1.0, 1}};
+  if (min == max) {
+    return {{min - 5, 0}, {max + 5, 1}};
   }
-  const double shifted_max = std::max(max, min + 10);
+
   // Always show at least ten units.
   const int diff_exp =
-      static_cast<int>(std::floor(std::log(shifted_max - min) / std::log(10)));
+      static_cast<int>(std::floor(std::log(max - min + 10) / std::log(10)));
   const int spacing = static_cast<int>(std::pow(10, diff_exp));
 
-  const double buffer_below_min =
-      (min >= 0 ? std::fmod(min, spacing) : spacing - std::fmod(-min, spacing));
-  const double buffer_above_max =
-      (shifted_max >= 0 ? spacing - std::fmod(shifted_max, spacing)
-                        : std::fmod(-shifted_max, spacing));
-  *used_min = min - buffer_below_min -
-              (std::fmod(std::floor(min), spacing) == 0 ? spacing : 0);
-  *used_max = shifted_max + buffer_above_max +
-              (std::fmod(std::ceil(shifted_max), spacing) == 0 ? spacing : 0);
+  *used_min = min - 5;
+  *used_max = max + 5;
 
-  std::map<double, int> labels;
-  for (int i = static_cast<int>(*used_min);
-       i < static_cast<int>(*used_max) + spacing; i += spacing) {
-    labels[(i - *used_min) / (*used_max - *used_min)] = i;
+  std::map<double, int> labels = GetLabels(*used_min, *used_max, spacing);
+  if (labels.size() < 2 && spacing > 10) {
+    labels = GetLabels(*used_min, *used_max, spacing / 10);
   }
   return labels;
 }
 
-Grapher::Duration DurationMul(const Grapher::Duration& d, const double c) {
-  auto t = std::chrono::duration_cast<std::chrono::duration<double>>(d) * c;
-  return std::chrono::duration_cast<Grapher::Duration>(t);
-}
-
-Grapher::Duration DurationMul(const double c, const Grapher::Duration& d) {
-  return DurationMul(d, c);
+void ComputeMinMax(const std::map<Grapher::TimePoint, double>& data,
+                   const Grapher::TimePoint& begin,
+                   const Grapher::TimePoint& end, double* min, double* max) {
+  auto it = data.lower_bound(begin);
+  if (it == data.end() || it->first > end) {
+    *min = *max = 0;
+    return;
+  }
+  *min = *max = it->second;
+  ++it;
+  while (it != data.end() && it->first <= end) {
+    *min = std::min(*min, it->second);
+    *max = std::max(*max, it->second);
+    ++it;
+  }
 }
 
 }  // namespace
@@ -65,34 +75,33 @@ Grapher::Graph Grapher::Plot(const TimeSeries& series, const TimePoint& start,
   Graph graph = {start, start + width_, 0, 1};
   std::map<TimePoint, double> data;
 
-  const TimePoint bbox_min = start + DurationMul(std::floor(stage), increment_);
-  const TimePoint bbox_max =
-      start + width_ + DurationMul(std::ceil(stage), increment_);
-  double min = -1, max = -1;
+  const double bbox_min =
+      start.time_since_epoch().count() + (stage * increment_).count();
+  const double bbox_max = (start + width_).time_since_epoch().count() +
+                          (stage * increment_).count();
 
-  series.Visit(start - look_behind_ + DurationMul(increment_, stage),
-               start + width_ + DurationMul(increment_, stage), type,
+  series.Visit(start - look_behind_, start + width_ + increment_, type,
                [&](const TimePoint& time, const double value) {
                  const double d = value * coef;
                  data[time] = d;
-                 if (time >= bbox_min && time <= bbox_max) {
-                   min = max = d;
-                 } else {
-                   min = std::min(min, d);
-                   max = std::max(max, d);
-                 }
                });
 
+  double min0, min1, max0, max1;
+  ComputeMinMax(data, start, start + width_, &min0, &max0);
+  ComputeMinMax(data, start + increment_, start + increment_ + width_, &min1,
+                &max1);
+
+  double min2 = min0 + (min1 - min0) * stage;
+  double max2 = max0 + (max1 - max0) * stage;
   double used_min, used_max;
-  graph.labels = GetLabels(min, max, &used_min, &used_max);
-  graph.min_y = min;
-  graph.max_y = max;
+  graph.labels = GetLabels(min2, max2, &used_min, &used_max);
+  graph.min_y = min2;
+  graph.max_y = max2;
 
   for (const auto& p : data) {
-    graph.points.push_back(
-        {(p.first - bbox_min).count() /
-             static_cast<double>((bbox_max - bbox_min).count()),
-         (p.second - used_min) / (used_max - used_min)});
+    const double tp = p.first.time_since_epoch().count();
+    graph.points.push_back({(tp - bbox_min) / (bbox_max - bbox_min),
+                            (p.second - used_min) / (used_max - used_min)});
   }
 
   return graph;
