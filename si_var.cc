@@ -1,5 +1,4 @@
 #include "si_var.h"
-#include "si_var.h"
 
 #include <cassert>
 #include <cmath>
@@ -63,7 +62,7 @@ SiVar operator*(const SiUnit& unit, const SiVar& var) {
 SiVar operator*(const double d, const SiVar& var) {
   return SiVar(var.unit_, var.coef_ * d);
 }
-  
+
 SiVar& SiVar::operator*=(const double d) {
   coef_ *= d;
   return *this;

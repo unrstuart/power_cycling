@@ -29,8 +29,8 @@ TEST(GrapherTest, Plot) {
 
   for (int i = 0; i < kNumSamples; ++i) {
     const double hr =
-        kMinHr + (kMaxHr - kMinHr) * std::sin(M_PI * (i / kPeriod) * 2);
-    time_series.Add(TimeSample(now + std::chrono::seconds(i),
+        kMinHr + (kMaxHr - kMinHr) * std::sin(M_PI * (i / kSamplePeriod) * 2);
+    time_series.Add(TimeSample(start + std::chrono::seconds(i),
                                Measurement(Measurement::HEART_RATE, hr)));
   }
 
@@ -39,8 +39,8 @@ TEST(GrapherTest, Plot) {
   for (int i = 0; i < kNumSamples; ++i) {
     for (int frame = 0; frame < kNumFrames; ++frame) {
       Grapher::Graph graph = grapher.Plot(
-          series, now + std::chrono::seconds(i), Measurement::HEART_RATE, 1.0,
-          frame / static_cast<double>(kNumFrames));
+          time_series, start + std::chrono::seconds(i), Measurement::HEART_RATE,
+          1.0, frame / static_cast<double>(kNumFrames));
       EXPECT_GE(graph.labels.size(), 2);
       EXPECT_FALSE(graph.points.empty());
     }

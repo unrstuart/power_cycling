@@ -20,7 +20,7 @@ std::map<double, int> GetLabels(const double min, const double max,
   if (min == max && min == -1) {
     return {{0.0, 0}, {1.0, 1}};
   }
-  const double shifted_max = std::min(max, min + 10);
+  const double shifted_max = std::max(max, min + 10);
   // Always show at least ten units.
   const int diff_exp =
       static_cast<int>(std::floor(std::log(shifted_max - min) / std::log(10)));

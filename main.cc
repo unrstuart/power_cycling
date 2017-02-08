@@ -65,12 +65,6 @@ SiVar ComputeSpeed(const SiVar& power, const SiVar& rider_weight,
     const SiVar computed_power =
         ComputePower(rider_weight, bike_weight, gravity, frontal_area, speed,
                      air_density, drivetrain_loss, drag_coef, rolling_coef);
-#if 0
-    printf("%2d power=%s speed_guess=%s comp=%s diff=%s\n", i,
-           power.ToString().c_str(), speed.ToString().c_str(),
-           computed_power.ToString().c_str(),
-           (power - computed_power).ToString().c_str());
-#endif
     if ((computed_power - power).Abs() < power_epsilon) break;
     if (computed_power > power) {
       speed -= adjust;
@@ -100,11 +94,11 @@ void DumpTimeSeries() {
 
   for (int i = 0; i < kNumSamples; ++i) {
     const double hr =
-        kMinHr + (kMaxHr - kMinHr) * std::sin(M_PI * (i / kPeriod) * 2);
-    time_series.Add(TimeSample(now + std::chrono::seconds(i),
+        kMinHr + (kMaxHr - kMinHr) * std::sin(M_PI * (i / kSamplePeriod) * 2);
+    time_series.Add(TimeSample(start + std::chrono::seconds(i),
                                Measurement(Measurement::HEART_RATE, hr)));
   }
-  
+
   FILE* fp = fopen("time_series.out", "w");
 
   Grapher grapher(kWindow, kIncrement, kLookBehind);
@@ -112,8 +106,8 @@ void DumpTimeSeries() {
   for (int i = 0; i < kNumSamples; ++i) {
     for (int frame = 0; frame < kNumFrames; ++frame) {
       Grapher::Graph graph = grapher.Plot(
-          series, now + std::chrono::seconds(i), Measurement::HEART_RATE, 1.0,
-          frame / static_cast<double>(kNumFrames));
+          time_series, start + std::chrono::seconds(i), Measurement::HEART_RATE,
+          1.0, frame / static_cast<double>(kNumFrames));
       int num_labels = graph.labels.size();
       int num_points = graph.points.size();
 
@@ -143,6 +137,8 @@ int Main() {
     printf("power: %9s speed: %11s\n", power.ToString().c_str(),
            speed.ToString().c_str());
   }
+
+  DumpTimeSeries();
 
   return 0;
 }

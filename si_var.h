@@ -30,7 +30,7 @@ class SiVar {
 
   SiVar() : SiVar(SiBaseUnit::UNITLESS) {}
   SiVar(const double coef) : SiVar(SiBaseUnit::UNITLESS, coef) {}
-  SiVar(const SiUnit& unit) : SiVar(unit, /*coef=*/0) {}
+  SiVar(const SiUnit& unit) : SiVar(unit, /*coef=*/1) {}
   SiVar(const SiUnit& unit, const double coef);
   SiVar(const SiVar&) = default;
   SiVar(SiVar&&) = default;
