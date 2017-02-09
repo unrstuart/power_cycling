@@ -3,6 +3,11 @@ cc_binary(
     deps = [":main"],
 )
 
+cc_binary(
+    name = "xml_util_test",
+    deps = [":xml_util"],
+)
+
 cc_library(
     name = "grapher",
     srcs = ["grapher.cc"],
@@ -70,6 +75,73 @@ cc_library(
     srcs = ["time_series.cc"],
     hdrs = ["time_series.h"],
     deps = [":time_sample"],
+)
+
+cc_library(
+    name = "xml_util",
+    srcs = ["xml_util.cc"],
+    hdrs = ["xml_util.h"],
+    deps = [
+        ":libxml2",
+    ],
+)
+
+cc_library(
+    name = "libxml2",
+    srcs = [
+        "libxml/libxml2.a",
+        "libxml/libxml2.dylib",
+        "libz.dylib",
+    ],
+    hdrs = [
+        "libxml/DOCBparser.h",
+        "libxml/HTMLparser.h",
+        "libxml/HTMLtree.h",
+        "libxml/SAX.h",
+        "libxml/SAX2.h",
+        "libxml/c14n.h",
+        "libxml/catalog.h",
+        "libxml/chvalid.h",
+        "libxml/debugXML.h",
+        "libxml/dict.h",
+        "libxml/encoding.h",
+        "libxml/entities.h",
+        "libxml/globals.h",
+        "libxml/hash.h",
+        "libxml/list.h",
+        "libxml/nanoftp.h",
+        "libxml/nanohttp.h",
+        "libxml/parser.h",
+        "libxml/parserInternals.h",
+        "libxml/pattern.h",
+        "libxml/relaxng.h",
+        "libxml/schemasInternals.h",
+        "libxml/schematron.h",
+        "libxml/threads.h",
+        "libxml/tree.h",
+        "libxml/uri.h",
+        "libxml/valid.h",
+        "libxml/xinclude.h",
+        "libxml/xlink.h",
+        "libxml/xmlIO.h",
+        "libxml/xmlautomata.h",
+        "libxml/xmlerror.h",
+        "libxml/xmlexports.h",
+        "libxml/xmlmemory.h",
+        "libxml/xmlmodule.h",
+        "libxml/xmlreader.h",
+        "libxml/xmlregexp.h",
+        "libxml/xmlsave.h",
+        "libxml/xmlschemas.h",
+        "libxml/xmlschemastypes.h",
+        "libxml/xmlstring.h",
+        "libxml/xmlunicode.h",
+        "libxml/xmlversion.h",
+        "libxml/xmlwriter.h",
+        "libxml/xpath.h",
+        "libxml/xpathInternals.h",
+        "libxml/xpointer.h",
+    ],
 )
 
 cc_library(

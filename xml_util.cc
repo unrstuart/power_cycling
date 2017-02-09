@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <utility>
 
-#include <libxml/parser.h>
-#include <libxml/tree.h>
+#include "libxml/parser.h"
+#include "libxml/tree.h"
 
 namespace cycling {
 
@@ -15,6 +15,11 @@ namespace {
 template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+std::string ToString(const xmlChar* stupid_rep) {
+  return stupid_rep ? std::string(reinterpret_cast<const char*>(stupid_rep))
+                    : "";
 }
 
 std::map<xmlElementType, int> g_counts;
@@ -56,10 +61,12 @@ std::unique_ptr<XmlNode> ConvertToNode(xmlNode* cur_node) {
   g_counts[cur_node->type]++;
   switch (cur_node->type) {
     case XML_ELEMENT_NODE:
-      node->name = reinterpret_cast<const char*>(cur_node->name);
+      node->name = ToString(cur_node->name);
       for (xmlAttr* attr = cur_node->properties; attr != nullptr;
            attr = attr->next) {
-        xmlNode* val = attr->children;
+        xmlChar* value = xmlNodeListGetString(cur_node->doc, attr->children, 1);
+        node->attrs[ToString(attr->name)] = ToString(value);
+        xmlFree(value);
       }
       for (xmlNode* child = cur_node->children; child != nullptr;
            child = child->next) {
@@ -68,8 +75,7 @@ std::unique_ptr<XmlNode> ConvertToNode(xmlNode* cur_node) {
       node->type = XmlNode::TAG;
       break;
     case XML_TEXT_NODE:
-      node->text = TrimWhitespace(
-          reinterpret_cast<const char*>(xmlNodeGetContent(cur_node)));
+      node->text = TrimWhitespace(ToString(xmlNodeGetContent(cur_node)));
       node->type = XmlNode::FREE_TEXT;
       break;
     default:
@@ -85,7 +91,14 @@ void Print(const XmlNode& node, const int indent) {
     printf("%*s'%s'\n", indent * 2, "", node.text.c_str());
     return;
   }
-  printf("%*s'%s'\n", indent * 2, "", node.name.c_str());
+  printf("%*s'%s'", indent * 2, "", node.name.c_str());
+  if (!node.attrs.empty()) {
+    printf(" -");
+    for (const auto& p : node.attrs) {
+      printf(" %s=%s", p.first.c_str(), p.second.c_str());
+    }
+  }
+  printf("\n");
   for (const auto& child : node.children) Print(*child, indent + 1);
 }
 
