@@ -90,7 +90,6 @@ cc_library(
     name = "libxml2",
     srcs = [
         "libxml/libxml2.a",
-        "libxml/libxml2.dylib",
         "libz.dylib",
     ],
     hdrs = [

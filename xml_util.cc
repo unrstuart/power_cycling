@@ -71,6 +71,7 @@ std::unique_ptr<XmlNode> ConvertToNode(xmlNode* cur_node) {
       for (xmlNode* child = cur_node->children; child != nullptr;
            child = child->next) {
         node->children.push_back(ConvertToNode(child));
+        node->children.back()->parent = node.get();
       }
       node->type = XmlNode::TAG;
       break;
@@ -86,35 +87,15 @@ std::unique_ptr<XmlNode> ConvertToNode(xmlNode* cur_node) {
   return node;
 }
 
-void Print(const XmlNode& node, const int indent) {
-  if (node.type == XmlNode::FREE_TEXT) {
-    printf("%*s'%s'\n", indent * 2, "", node.text.c_str());
-    return;
-  }
-  printf("%*s'%s'", indent * 2, "", node.name.c_str());
-  if (!node.attrs.empty()) {
-    printf(" -");
-    for (const auto& p : node.attrs) {
-      printf(" %s=%s", p.first.c_str(), p.second.c_str());
-    }
-  }
-  printf("\n");
-  for (const auto& child : node.children) Print(*child, indent + 1);
-}
-
-int g_trimmed = 0;
-
 std::unique_ptr<XmlNode> Trim(std::unique_ptr<XmlNode> node) {
   if (node == nullptr) return node;
   if (node->type == XmlNode::FREE_TEXT) {
     if (node->text.empty()) {
-      ++g_trimmed;
       return nullptr;
     }
     return node;
   }
   if (node->name.empty() && node->children.empty()) {
-    ++g_trimmed;
     return nullptr;
   }
   std::vector<std::unique_ptr<XmlNode>> new_kids;
@@ -149,23 +130,24 @@ std::unique_ptr<XmlNode> ParseXmlFile(const std::string& path) {
   return Trim(std::move(node));
 }
 
-int main(int argc, char** argv) {
-  auto node = ParseXmlFile(argv[1]);
-  if (node == nullptr) {
-    fprintf(stderr, "couldn't parse %s\n", *argv);
-    return 1;
+const XmlNode* FindNode(const std::string& name, const XmlNode* root) {
+  if (root == nullptr) return root;
+  if (root->type == XmlNode::FREE_TEXT) return nullptr;
+  if (root->name == name) return root;
+  for (const auto& p : children) {
+    const XmlNode* n = FindNode(name, p.get());
+    if (n != nullptr) return n;
   }
-  for (const auto& p : g_counts) {
-    auto it = kTypes.find(p.first);
-    const std::string type =
-        (it == kTypes.end() ? std::string("(unknown)") : it->second);
-    printf("%s %d\n", type.c_str(), p.second);
-  }
-  printf("trimmed: %d\n", g_trimmed);
-  Print(*node, 0);
-  return 0;
+  return nullptr;
+}
+
+const XmlNode* FindNextNode(const std::string& name, const XmlNode* parent, const XmlNode* hint) {
+}
+
+const XmlNode* FindNextNode(const std::string& name, const XmlNode* hint) {
+  const XmlNode* n = FindNode(name, hint);
+  if (n != nullptr) return n;
+  return FindNextNode(name, hint->parent, hint);
 }
 
 }  // namespace cycling
-
-int main(int argc, char** argv) { return cycling::main(argc, argv); }
