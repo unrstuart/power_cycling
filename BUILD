@@ -3,11 +3,6 @@ cc_binary(
     deps = [":main"],
 )
 
-cc_binary(
-    name = "xml_util_test",
-    deps = [":xml_util"],
-)
-
 cc_library(
     name = "grapher",
     srcs = ["grapher.cc"],
@@ -276,5 +271,14 @@ cc_test(
         ":measurement",
         ":time_sample",
         ":time_series",
+    ],
+)
+
+cc_test(
+    name = "xml_util_test",
+    srcs = ["xml_util_test.cc"],
+    deps = [
+        ":gtest",
+        ":xml_util",
     ],
 )

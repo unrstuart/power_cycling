@@ -1,6 +1,7 @@
 #ifndef __XML_UTIL_H__
 #define __XML_UTIL_H__
 
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
@@ -30,7 +31,14 @@ struct XmlNode {
   // All of these are only set if this is a tag node.
   std::string name;
   std::map<std::string, std::string> attrs;
+
+  friend std::ostream& operator<<(std::ostream& lhs, const XmlNode& rhs);
 };
+
+namespace xml_util {
+
+// Parses the XML contents in the string and converts it to a tree of XmlNodes.
+std::unique_ptr<XmlNode> ParseXmlContents(const std::string& contents);
 
 // Parses the XML file at the given path and converts it to a tree of XmlNodes.
 std::unique_ptr<XmlNode> ParseXmlFile(const std::string& path);
@@ -44,6 +52,7 @@ const XmlNode* FindNode(const std::string& name, const XmlNode* root);
 // children. The same procedure is followed recursively up the tree.
 const XmlNode* FindNextNode(const std::string& name, const XmlNode* hint);
 
+}  // namespace xml_util
 }  // namespace cycling
 
 #endif

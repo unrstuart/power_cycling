@@ -10,6 +10,28 @@
 
 namespace cycling {
 
+std::ostream& operator<<(std::ostream& lhs, const XmlNode& rhs) {
+  switch (rhs.type) {
+    case XmlNode::ROOT:
+      lhs << "root node ";
+      break;
+    case XmlNode::FREE_TEXT:
+      return lhs << "text: {" << rhs.text << "}";
+    case XmlNode::TAG:
+      lhs << "tag node ";
+      break;
+  }
+  lhs << "- name='" << rhs.name << "'";
+  lhs << " attrs={";
+  for (const auto& attr : rhs.attrs) {
+    if (attr.first != rhs.attrs.begin()->first) lhs << ",";
+    lhs << attr.first << "='" << attr.second << "'";
+  }
+  return lhs << " num_kids=" << rhs.children.size();
+}
+
+namespace xml_util {
+
 namespace {
 
 template <typename T, typename... Args>
@@ -48,12 +70,14 @@ const std::map<xmlElementType, std::string> kTypes = {
 };
 
 std::string TrimWhitespace(const std::string str) {
-  int first_non_ws = 0;
-  while (first_non_ws < str.size() && str[first_non_ws] <= ' ') ++first_non_ws;
-  std::string ret = str.substr(first_non_ws);
-  first_non_ws = ret.size() - 1;
-  while (first_non_ws >= 0 && ret[first_non_ws] <= ' ') --first_non_ws;
-  return ret.substr(0, first_non_ws + 1);
+  auto it = str.begin();
+  while (it != str.end() && *it <= ' ') ++it;
+  std::string ret = str.substr(it - str.begin());
+  auto first_non_space = ret.rbegin();
+  while (first_non_space != ret.rend() && *first_non_space <= ' ') {
+    ++first_non_space;
+  }
+  return ret.substr(0, ret.size() - (first_non_space - ret.rbegin()));
 }
 
 std::unique_ptr<XmlNode> ConvertToNode(xmlNode* cur_node) {
@@ -107,16 +131,8 @@ std::unique_ptr<XmlNode> Trim(std::unique_ptr<XmlNode> node) {
   return node;
 }
 
-}  // namespace
-
-std::unique_ptr<XmlNode> ParseXmlFile(const std::string& path) {
-  xmlDoc* doc = NULL;
-  xmlNode* root_element = NULL;
-
-  doc = xmlReadFile(path.c_str(), NULL, 0);
-  if (doc == NULL) return nullptr;
-
-  root_element = xmlDocGetRootElement(doc);
+std::unique_ptr<XmlNode> ConvertToXmlNodeTree(xmlDoc* doc) {
+  xmlNode* root_element = xmlDocGetRootElement(doc);
   auto node = make_unique<XmlNode>();
   node->type = XmlNode::ROOT;
 
@@ -124,30 +140,71 @@ std::unique_ptr<XmlNode> ParseXmlFile(const std::string& path) {
        child_node = child_node->next) {
     node->children.push_back(ConvertToNode(child_node));
   }
-  xmlFreeDoc(doc);
-  xmlCleanupParser();
 
   return Trim(std::move(node));
 }
 
+}  // namespace
+
+std::unique_ptr<XmlNode> ParseXmlContents(const std::string& contents) {
+  xmlDoc* doc =
+      xmlReadMemory(contents.data(), contents.size(), "noname.xml", nullptr, 0);
+  if (doc == nullptr) {
+    fprintf(stderr, "Failed to parse document\n");
+    return nullptr;
+  }
+  auto node = ConvertToXmlNodeTree(doc);
+  xmlFreeDoc(doc);
+  xmlCleanupParser();
+  return node;
+}
+
+std::unique_ptr<XmlNode> ParseXmlFile(const std::string& path) {
+  xmlDoc* doc = xmlReadFile(path.c_str(), NULL, 0);
+  if (doc == nullptr) return nullptr;
+  auto node = ConvertToXmlNodeTree(doc);
+  xmlFreeDoc(doc);
+  xmlCleanupParser();
+  return node;
+}
+
 const XmlNode* FindNode(const std::string& name, const XmlNode* root) {
+  printf("looking for %s in node %s\n", name.c_str(),
+         (root ? root->name.c_str() : ""));
   if (root == nullptr) return root;
   if (root->type == XmlNode::FREE_TEXT) return nullptr;
   if (root->name == name) return root;
-  for (const auto& p : children) {
+  for (const auto& p : root->children) {
     const XmlNode* n = FindNode(name, p.get());
     if (n != nullptr) return n;
   }
   return nullptr;
 }
 
-const XmlNode* FindNextNode(const std::string& name, const XmlNode* parent, const XmlNode* hint) {
+const XmlNode* FindNextNode(const std::string& name, const XmlNode* parent,
+                            const XmlNode* hint) {
+  if (parent == nullptr) return nullptr;
+  bool found_self = false;
+  for (const auto& sibling : parent->children) {
+    if (sibling.get() == hint) {
+      found_self = true;
+      continue;
+    } else if (!found_self) {
+      continue;
+    }
+    const XmlNode* n = FindNode(name, sibling.get());
+    if (n != nullptr) return n;
+  }
+  return FindNextNode(name, parent->parent, parent);
 }
 
 const XmlNode* FindNextNode(const std::string& name, const XmlNode* hint) {
-  const XmlNode* n = FindNode(name, hint);
-  if (n != nullptr) return n;
+  for (const auto& kid : hint->children) {
+    const XmlNode* n = FindNode(name, kid.get());
+    if (n != nullptr) return n;
+  }
   return FindNextNode(name, hint->parent, hint);
 }
 
+}  // namespace xml_util
 }  // namespace cycling
