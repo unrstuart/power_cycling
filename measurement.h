@@ -13,6 +13,10 @@ class Measurement {
  public:
   enum Type {
     NO_TYPE,
+    // The latitude of the point, in degrees. Unitless.
+    DEGREES_LATITUDE,
+    // The longitude of the point, in degrees. Unitless.
+    DEGREES_LONGITUDE,
     // Heart rate, in beats per minute. Unitless.
     HEART_RATE,
     // The time between the end of one beat and the beginning of the next.

@@ -56,6 +56,21 @@ cc_library(
 )
 
 cc_library(
+    name = "tcx_util",
+    srcs = ["tcx_util.cc"],
+    hdrs = ["tcx_util.h"],
+    deps = [
+        ":measurement",
+        ":si_base_unit",
+        ":si_unit",
+        ":si_var",
+        ":time_sample",
+        ":time_series",
+        ":xml_util",
+    ],
+)
+
+cc_library(
     name = "time_sample",
     srcs = ["time_sample.cc"],
     hdrs = ["time_sample.h"],
@@ -250,6 +265,18 @@ cc_test(
         ":si_base_unit",
         ":si_unit",
         ":si_var",
+    ],
+)
+
+cc_test(
+    name = "tcx_util_test",
+    srcs = ["tcx_util_test.cc"],
+    deps = [
+        ":gtest",
+        ":tcx_util",
+    ],
+    data = [
+        "tcx_util_test_data.tcx",
     ],
 )
 

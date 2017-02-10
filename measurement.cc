@@ -26,6 +26,8 @@ std::string ItoA(const int i) {
 Measurement::Measurement(const Type type, const double coef) : type_(type) {
   switch (type) {
     case NO_TYPE:
+    case DEGREES_LATITUDE:
+    case DEGREES_LONGITUDE:
     case HEART_RATE:
     case HRV:
     case CADENCE:
@@ -51,6 +53,8 @@ Measurement::Measurement(const Type type, const SiVar& var)
     : type_(type), value_(var) {
   switch (type) {
     case NO_TYPE:
+    case DEGREES_LATITUDE:
+    case DEGREES_LONGITUDE:
     case HEART_RATE:
     case HRV:
     case CADENCE:
@@ -76,6 +80,10 @@ std::string Measurement::ToString() const {
   switch (type_) {
     case NO_TYPE:
       return "null";
+    case DEGREES_LATITUDE:
+      return DtoA(value_.coef()) + " deg lat";
+    case DEGREES_LONGITUDE:
+      return DtoA(value_.coef()) + " deg lon";
     case HEART_RATE:
       return DtoA(value_.coef()) + " bpm";
     case HRV:
