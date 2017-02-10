@@ -129,7 +129,7 @@ TEST_F(TimeSeriesTest, Visit) {
 
   index = 0;
   time_series_.Visit(now_ + second_ * index, now_ + second_ * 4, visitor);
-  EXPECT_EQ(index, 4);
+  EXPECT_EQ(index, 5);
 
   index = 2;
   time_series_.Visit(now_ + second_ * index, now_ + second_ * kSize, visitor);
@@ -137,7 +137,7 @@ TEST_F(TimeSeriesTest, Visit) {
 
   index = 2;
   time_series_.Visit(now_ + second_ * 2, now_ + second_ * 4, visitor);
-  EXPECT_EQ(index, 4);
+  EXPECT_EQ(index, 5);
 
   sample_index = 0;
   index = 2;

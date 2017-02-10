@@ -10,7 +10,7 @@ using ::testing::AllOf;
 using ::testing::Not;
 
 const char kTestData[] = R"(
-  <a>
+  <a zeroth="">
     <b first="">
       <c first=""/>
       <d first=""/>
@@ -65,6 +65,7 @@ class XmlUtilTest : public ::testing::Test {
  protected:
   void SetUp() {
     root_ = ParseXmlContents(kTestData);
+    root_ = std::move(root_->children[0]);
     ASSERT_NE(root_, nullptr);
   }
 
@@ -82,11 +83,11 @@ class XmlUtilTest : public ::testing::Test {
         break;
       case XmlNode::ROOT:
       case XmlNode::TAG:
-        printf("%s", node->name.c_str());
+        printf("name='%s' attrs={", node->name.c_str());
         for (const auto& attr : node->attrs) {
           printf(" %s='%s'", attr.first.c_str(), attr.second.c_str());
         }
-        printf("\n");
+        printf("}\n");
         for (const auto& kid : node->children) {
           PrintTree(kid.get(), indent + 1);
         }
@@ -98,19 +99,21 @@ class XmlUtilTest : public ::testing::Test {
 };
 
 TEST_F(XmlUtilTest, Parse) {
-  ASSERT_TRUE(XmlTreesAreEqual(root_.get(), ParseXmlFile(kTestFilePath).get()));
+  std::unique_ptr<XmlNode> file_root = ParseXmlFile(kTestFilePath);
+  ASSERT_NE(file_root.get(), nullptr);
+  ASSERT_TRUE(XmlTreesAreEqual(root_.get(), file_root->children[0].get()));
 }
 
 TEST_F(XmlUtilTest, FindNode) {
-  PrintTree(root_.get(), 0);
   EXPECT_THAT(FindNode("a", root_.get()), HasName("a"));
   EXPECT_THAT(FindNode("b", root_.get()), HasName("b"));
   EXPECT_EQ(FindNode("e", root_.get()), nullptr);
 }
 
 TEST_F(XmlUtilTest, FindNextNodeFails) {
+  const XmlNode* n = FindNextNode("a", root_.get());
+  if (n != nullptr) std::cout << *n << std::endl;
   EXPECT_EQ(FindNextNode("a", root_.get()), nullptr);
-  EXPECT_EQ(FindNextNode("b", root_->children[1].get()), nullptr);
 }
 
 TEST_F(XmlUtilTest, FindNextNodeInChild) {

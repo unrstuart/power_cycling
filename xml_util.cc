@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream& lhs, const XmlNode& rhs) {
     if (attr.first != rhs.attrs.begin()->first) lhs << ",";
     lhs << attr.first << "='" << attr.second << "'";
   }
-  return lhs << " num_kids=" << rhs.children.size();
+  return lhs << "} num_kids=" << rhs.children.size();
 }
 
 namespace xml_util {
@@ -144,6 +144,23 @@ std::unique_ptr<XmlNode> ConvertToXmlNodeTree(xmlDoc* doc) {
   return Trim(std::move(node));
 }
 
+const XmlNode* FindNextNode(const std::string& name, const XmlNode* parent,
+                            const XmlNode* hint) {
+  if (parent == nullptr) return nullptr;
+  bool found_self = false;
+  for (const auto& sibling : parent->children) {
+    if (sibling.get() == hint) {
+      found_self = true;
+      continue;
+    } else if (!found_self) {
+      continue;
+    }
+    const XmlNode* n = FindNode(name, sibling.get());
+    if (n != nullptr) return n;
+  }
+  return FindNextNode(name, parent->parent, parent);
+}
+
 }  // namespace
 
 std::unique_ptr<XmlNode> ParseXmlContents(const std::string& contents) {
@@ -169,8 +186,6 @@ std::unique_ptr<XmlNode> ParseXmlFile(const std::string& path) {
 }
 
 const XmlNode* FindNode(const std::string& name, const XmlNode* root) {
-  printf("looking for %s in node %s\n", name.c_str(),
-         (root ? root->name.c_str() : ""));
   if (root == nullptr) return root;
   if (root->type == XmlNode::FREE_TEXT) return nullptr;
   if (root->name == name) return root;
@@ -181,24 +196,8 @@ const XmlNode* FindNode(const std::string& name, const XmlNode* root) {
   return nullptr;
 }
 
-const XmlNode* FindNextNode(const std::string& name, const XmlNode* parent,
-                            const XmlNode* hint) {
-  if (parent == nullptr) return nullptr;
-  bool found_self = false;
-  for (const auto& sibling : parent->children) {
-    if (sibling.get() == hint) {
-      found_self = true;
-      continue;
-    } else if (!found_self) {
-      continue;
-    }
-    const XmlNode* n = FindNode(name, sibling.get());
-    if (n != nullptr) return n;
-  }
-  return FindNextNode(name, parent->parent, parent);
-}
-
 const XmlNode* FindNextNode(const std::string& name, const XmlNode* hint) {
+  if (hint == nullptr) return nullptr;
   for (const auto& kid : hint->children) {
     const XmlNode* n = FindNode(name, kid.get());
     if (n != nullptr) return n;

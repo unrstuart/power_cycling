@@ -41,7 +41,7 @@ TEST(GrapherTest, Plot) {
       Grapher::Graph graph = grapher.Plot(
           time_series, start + std::chrono::seconds(i), Measurement::HEART_RATE,
           1.0, frame / static_cast<double>(kNumFrames));
-      EXPECT_GE(graph.labels.size(), 2);
+      EXPECT_GE(graph.labels.size(), 1);
       EXPECT_FALSE(graph.points.empty());
     }
   }

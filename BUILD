@@ -281,4 +281,6 @@ cc_test(
         ":gtest",
         ":xml_util",
     ],
+    data = ["xml_util_test_data.xml"],
+    linkstatic = 1,
 )
