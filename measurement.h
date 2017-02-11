@@ -17,6 +17,8 @@ class Measurement {
     DEGREES_LATITUDE,
     // The longitude of the point, in degrees. Unitless.
     DEGREES_LONGITUDE,
+    // The altitude of the measurement, in meters.
+    ALTITUDE,
     // Heart rate, in beats per minute. Unitless.
     HEART_RATE,
     // The time between the end of one beat and the beginning of the next.
@@ -29,6 +31,8 @@ class Measurement {
     POWER,
     // Bike gear. Unitless.
     GEAR,
+    // The distance covered from one time sample to the next.
+    INCREMENTAL_DISTANCE,
     // The total distance covered up to, and including, this sample.
     TOTAL_DISTANCE,
     // The total joules burned thus far, up to and including this sample.

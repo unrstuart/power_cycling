@@ -6,8 +6,34 @@
 namespace cycling {
 namespace {
 
-TEST(TcxUtilTest, Parse) {
+const char kTestFile[] = "tcx_util_test_data.tcx";
 
+TEST(TcxUtilTest, Parse310TcxRun) {
+  ParseTcxFile();
+}
+
+TEST(TcxUtilTest, ParseFenix3OutdoorRun) {
+  ParseTcxFile();
+}
+
+TEST(TcxUtilTest, ParseFenix3OutdoorIntervalRun) {
+  ParseTcxFile();
+}
+
+TEST(TcxUtilTest, ParseFenix3IndoorRun) {
+  ParseTcxFile();
+}
+
+TEST(TcxUtilTest, ParseFenix3OutdoorRide) {
+  ParseTcxFile();
+}
+
+TEST(TcxUtilTest, ParseFenix3IndoorRide) {
+  ParseTcxFile();
+}
+
+TEST(TcxUtilTest, ParseTrainerRoadRide) {
+  ParseTcxFile();
 }
 
 }  // namespace

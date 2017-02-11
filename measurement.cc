@@ -40,6 +40,8 @@ Measurement::Measurement(const Type type, const double coef) : type_(type) {
     case POWER:
       value_ = SiVar(SiUnit::Watt(), coef);
       break;
+    case ALTITUDE:
+    case INCREMENTAL_DISTANCE:
     case TOTAL_DISTANCE:
       value_ = SiVar(SiUnit::Meter(), coef);
       break;
@@ -67,7 +69,9 @@ Measurement::Measurement(const Type type, const SiVar& var)
     case POWER:
       assert(value_.unit() == SiUnit::Watt());
       break;
+    case INCREMENTAL_DISTANCE:
     case TOTAL_DISTANCE:
+    case ALTITUDE:
       assert(value_.unit() == SiUnit::Meter());
       break;
     case TOTAL_JOULES:
@@ -96,6 +100,9 @@ std::string Measurement::ToString() const {
       return value_.ToString();
     case GEAR:
       return "gear " + ItoA(static_cast<int>(value_.coef()));
+    case ALTITUDE:
+    case INCREMENTAL_DISTANCE:
+      return value_.ToString();
     case TOTAL_DISTANCE:
       return DtoA(value_.coef() / 1000.0) + " km";
     case TOTAL_JOULES:

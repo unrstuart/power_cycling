@@ -52,6 +52,7 @@ class TimeSample {
   TimeSample Add(const Measurement& m) const;
 
   const TimePoint& time() const { return time_; }
+  void set_time(const TimePoint& t) { time_ = t; }
 
   bool has_value(const Measurement::Type type) const;
 

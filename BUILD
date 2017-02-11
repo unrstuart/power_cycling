@@ -56,6 +56,19 @@ cc_library(
 )
 
 cc_library(
+    name = "status",
+    srcs = ["status.cc"],
+    hdrs = ["status.h"],
+)
+
+cc_library(
+    name = "str_util",
+    srcs = ["str_util.cc"],
+    hdrs = ["str_util.h"],
+    deps = [],
+)
+
+cc_library(
     name = "tcx_util",
     srcs = ["tcx_util.cc"],
     hdrs = ["tcx_util.h"],
@@ -64,6 +77,8 @@ cc_library(
         ":si_base_unit",
         ":si_unit",
         ":si_var",
+        ":status",
+        ":str_util",
         ":time_sample",
         ":time_series",
         ":xml_util",
@@ -269,6 +284,15 @@ cc_test(
 )
 
 cc_test(
+    name = "str_util_test",
+    srcs = ["str_util_test.cc"],
+    deps = [
+        ":gtest",
+        ":str_util",
+    ],
+)
+
+cc_test(
     name = "tcx_util_test",
     srcs = ["tcx_util_test.cc"],
     deps = [
@@ -278,6 +302,7 @@ cc_test(
     data = [
         "tcx_util_test_data.tcx",
     ],
+    linkstatic = 1,
 )
 
 cc_test(
