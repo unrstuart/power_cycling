@@ -37,11 +37,14 @@ enum TcxEntity {
   ALTITUDE_METERS,
   AUTHOR,
   AVERAGE_HEART_RATE_BPM,
+  AVG_BIKE_CADENCE,
   AVG_RUN_CADENCE,
   AVG_SPEED,
+  AVG_WATTS,
   BUILD,
   BUILD_MAJOR,
   BUILD_MINOR,
+  CADENCE,
   CALORIES,
   CREATOR,
   DISTANCE_METERS,
@@ -54,7 +57,9 @@ enum TcxEntity {
   LAP,
   LATITUDE_DEGREES,
   LONGITUDE_DEGREES,
+  MAX_BIKE_CADENCE,
   MAX_RUN_CADENCE,
+  MAX_WATTS,
   MAXIMUM_HEART_RATE_BPM,
   MAXIMUM_SPEED,
   NAME,
@@ -76,6 +81,7 @@ enum TcxEntity {
   VERSION,
   VERSION_MAJOR,
   VERSION_MINOR,
+  WATTS,
 };
 
 const std::initializer_list<std::pair<std::string, TcxEntity>> kEntities = {
@@ -86,11 +92,14 @@ const std::initializer_list<std::pair<std::string, TcxEntity>> kEntities = {
     {"altitudemeters", ALTITUDE_METERS},
     {"author", AUTHOR},
     {"averageheartratebpm", AVERAGE_HEART_RATE_BPM},
+    {"avgbikecadence", AVG_RUN_CADENCE},
     {"avgruncadence", AVG_RUN_CADENCE},
     {"avgspeed", AVG_SPEED},
+    {"avgwatts", AVG_WATTS},
     {"build", BUILD},
     {"buildmajor", BUILD_MAJOR},
     {"buildminor", BUILD_MINOR},
+    {"cadence", CADENCE},
     {"calories", CALORIES},
     {"creator", CREATOR},
     {"distancemeters", DISTANCE_METERS},
@@ -103,7 +112,9 @@ const std::initializer_list<std::pair<std::string, TcxEntity>> kEntities = {
     {"lap", LAP},
     {"latitudedegrees", LATITUDE_DEGREES},
     {"longitudedegrees", LONGITUDE_DEGREES},
+    {"maxbikecadence", MAX_BIKE_CADENCE},
     {"maxruncadence", MAX_RUN_CADENCE},
+    {"maxwatts", MAX_WATTS},
     {"maximumheartratebpm", MAXIMUM_HEART_RATE_BPM},
     {"maximumspeed", MAXIMUM_SPEED},
     {"name", NAME},
@@ -125,6 +136,7 @@ const std::initializer_list<std::pair<std::string, TcxEntity>> kEntities = {
     {"version", VERSION},
     {"versionmajor", VERSION_MAJOR},
     {"versionminor", VERSION_MINOR},
+    {"watts", WATTS},
 };
 
 TcxEntity GetTcxEntity(const XmlNode* node) {
@@ -161,12 +173,19 @@ Status EntityMatches(const XmlNode* node, const XmlNode* parent,
                                       node->name, "."));
 }
 
+void PrintPathToRoot(const XmlNode* node) {
+  if (node == nullptr) return;
+  std::cerr << "name: " << node->name << std::endl;
+  PrintPathToRoot(node->parent);
+}
+
 Status ChildCountEquals(const XmlNode* node, const int num_children) {
   if (node == nullptr) {
     return Status::FailureStatus(
         "Expected node to have children, but node is null.");
   }
   if (node->children.size() != num_children) {
+    PrintPathToRoot(node);
     return Status::FailureStatus(StrCat("Expected ", node->name, " to have ",
                                         num_children, " children, but it has ",
                                         node->children.size(), "."));
@@ -210,9 +229,12 @@ Status ParseAuthor(const XmlNode* node, TimeSeries* series);
 Status ParseAverageHeartRateBpm(const XmlNode* node, TimeSeries* series);
 Status ParseAvgRunCadence(const XmlNode* node, TimeSeries* series);
 Status ParseAvgSpeed(const XmlNode* node, TimeSeries* series);
+Status ParseAvgWatts(const XmlNode* node, TimeSeries* series);
 Status ParseBuild(const XmlNode* node, TimeSeries* series);
 Status ParseBuildMajor(const XmlNode* node, TimeSeries* series);
 Status ParseBuildMinor(const XmlNode* node, TimeSeries* series);
+Status ParseCadence(const XmlNode* node, TimeSeries* series);
+Status ParseCadenceSample(const XmlNode* node, TimeSample* sample);
 Status ParseCalories(const XmlNode* node, TimeSeries* series);
 Status ParseCreator(const XmlNode* node, TimeSeries* series);
 Status ParseDistanceMeters(const XmlNode* node, TimeSeries* series);
@@ -230,6 +252,7 @@ Status ParseLongitudeDegrees(const XmlNode* node, TimeSample* sample);
 Status ParseMaxRunCadence(const XmlNode* node, TimeSeries* series);
 Status ParseMaximumHeartRateBpm(const XmlNode* node, TimeSeries* series);
 Status ParseMaximumSpeed(const XmlNode* node, TimeSeries* series);
+Status ParseMaxWatts(const XmlNode* node, TimeSeries* series);
 Status ParseName(const XmlNode* node, TimeSeries* series);
 Status ParsePartNumber(const XmlNode* node, TimeSeries* series);
 Status ParsePosition(const XmlNode* node, TimeSample* sample);
@@ -249,10 +272,21 @@ Status ParseValue(const XmlNode* node, TimeSeries* series);
 Status ParseVersion(const XmlNode* node, TimeSeries* series);
 Status ParseVersionMajor(const XmlNode* node, TimeSeries* series);
 Status ParseVersionMinor(const XmlNode* node, TimeSeries* series);
+Status ParseWatts(const XmlNode* node, TimeSample* sample);
 
 Status ParseTrainingCenterDatabase(const XmlNode* node, TimeSeries* series) {
-  RETURN_IF_ERROR(ChildCountEquals(node, 2));
-  const XmlNode* activities = node->children[0].get();
+  RETURN_IF_ERROR(ChildCountGreaterThan(node, 0));
+  const XmlNode* activities = nullptr;
+  for (const auto& kid : node->children) {
+    if (EntityMatches(kid.get(), node, ACTIVITIES).ok()) {
+      activities = kid.get();
+      break;
+    }
+  }
+  if (activities == nullptr) {
+    return Status::FailureStatus(
+        StrCat("Could not find an activities node under ", node->name, "."));
+  }
   RETURN_IF_ERROR(EntityMatches(activities, node, ACTIVITIES));
   RETURN_IF_ERROR(ParseActivities(activities, series));
   return Status::OkStatus();
@@ -342,6 +376,7 @@ Status ParseLap(const XmlNode* node, TimeSeries* series) {
       {TOTAL_TIME_SECONDS, ParseTotalTimeSeconds},
       {DISTANCE_METERS, ParseDistanceMeters},
       {MAXIMUM_SPEED, ParseMaximumSpeed},
+      {CADENCE, ParseCadence},
       {CALORIES, ParseCalories},
       {EXTENSIONS, ParseExtensions},
       {AVERAGE_HEART_RATE_BPM, ParseAverageHeartRateBpm},
@@ -378,8 +413,12 @@ Status ExtractTime(const std::string& str, TimeSample::TimePoint* time) {
   if (sscanf(str.c_str(), "%4d-%2d-%2dT%2d:%2d:%2d.%dZ%n", &y, &m, &d, &h, &min,
              &s, &ms, &n) != 7 ||
       n < str.size()) {
-    return Status::FailureStatus(
-        StrCat("Expected a Time value, got '", str, "' instead."));
+    if (sscanf(str.c_str(), "%4d-%2d-%2dT%2d:%2d:%2dZ%n", &y, &m, &d, &h, &min,
+               &s, &n) != 6 ||
+        n < str.size()) {
+      return Status::FailureStatus(
+          StrCat("Expected a Time value, got '", str, "' instead."));
+    }
   }
   struct tm c_time;
   c_time.tm_sec = s;
@@ -419,6 +458,24 @@ Status ParseMaximumSpeed(const XmlNode* node, TimeSeries* series) {
   RETURN_IF_ERROR(ExtractDouble(*speed, &d));
   SiVar var(SiUnit::MetersPerSecond(), d);
   std::cout << "  Maximum Lap Speed: " << var << "\n";
+  return Status::OkStatus();
+}
+
+Status ParseCadence(const XmlNode* node, TimeSeries* series) {
+  const std::string* steps;
+  RETURN_IF_ERROR(ContainsOneTextChild(node, &steps));
+  int spm;
+  RETURN_IF_ERROR(ExtractInt(*steps, &spm));
+  std::cout << "  Average Cadence: " << spm << "\n";
+  return Status::OkStatus();
+}
+
+Status ParseCadenceSample(const XmlNode* node, TimeSample* sample) {
+  const std::string* rpm_text;
+  RETURN_IF_ERROR(ContainsOneTextChild(node, &rpm_text));
+  int rpm;
+  RETURN_IF_ERROR(ExtractInt(*rpm_text, &rpm));
+  sample->Add(Measurement(Measurement::CADENCE, rpm));
   return Status::OkStatus();
 }
 
@@ -482,6 +539,7 @@ Status ParseTrackpoint(const XmlNode* node, TimeSample* sample) {
   const std::map<TcxEntity, SampleHandler> kHandlers = {
       {TIME, ParseTime},
       {POSITION, ParsePosition},
+      {CADENCE, ParseCadenceSample},
       {ALTITUDE_METERS, ParseAltitudeMeters},
       {DISTANCE_METERS, ParseDistanceMetersSample},
       {HEART_RATE_BPM, ParseHeartRateBpm},
@@ -565,7 +623,9 @@ Status ParseExtensionsSample(const XmlNode* node, TimeSample* sample) {
 Status ParseTpx(const XmlNode* node, TimeSample* sample) {
   RETURN_IF_ERROR(ChildCountGreaterThan(node, 0));
   const std::map<TcxEntity, SampleHandler> kHandlers = {
-      {SPEED, ParseSpeed}, {RUN_CADENCE, ParseRunCadence},
+      {SPEED, ParseSpeed},
+      {WATTS, ParseWatts},
+      {RUN_CADENCE, ParseRunCadence},
   };
   RETURN_IF_ERROR(ParseWithHandlers(node, kHandlers, sample));
   return Status::OkStatus();
@@ -577,6 +637,15 @@ Status ParseSpeed(const XmlNode* node, TimeSample* sample) {
   double m_s;
   RETURN_IF_ERROR(ExtractDouble(*speed_text, &m_s));
   sample->Add(Measurement(Measurement::SPEED, m_s));
+  return Status::OkStatus();
+}
+
+Status ParseWatts(const XmlNode* node, TimeSample* sample) {
+  const std::string* watts_text;
+  RETURN_IF_ERROR(ContainsOneTextChild(node, &watts_text));
+  int watts;
+  RETURN_IF_ERROR(ExtractInt(*watts_text, &watts));
+  sample->Add(Measurement(Measurement::POWER, watts));
   return Status::OkStatus();
 }
 
@@ -599,11 +668,15 @@ Status ParseExtensions(const XmlNode* node, TimeSeries* series) {
 }
 
 Status ParseLx(const XmlNode* node, TimeSeries* series) {
-  RETURN_IF_ERROR(ChildCountEquals(node, 1));
+  RETURN_IF_ERROR(ChildCountGreaterThan(node, 0));
   const std::map<TcxEntity, SeriesHandler> kHandlers = {
-      {MAX_RUN_CADENCE, ParseMaxRunCadence},
       {AVG_RUN_CADENCE, ParseAvgRunCadence},
+      {MAX_RUN_CADENCE, ParseMaxRunCadence},
+      {AVG_BIKE_CADENCE, ParseAvgRunCadence},
+      {MAX_BIKE_CADENCE, ParseMaxRunCadence},
       {AVG_SPEED, ParseAvgSpeed},
+      {AVG_WATTS, ParseAvgWatts},
+      {MAX_WATTS, ParseMaxWatts},
       {STEPS, ParseSteps},
   };
   RETURN_IF_ERROR(ParseWithHandlers(node, kHandlers, series));
@@ -638,6 +711,28 @@ Status ParseAvgSpeed(const XmlNode* node, TimeSeries* series) {
   RETURN_IF_ERROR(ExtractDouble(*speed, &m_s));
   const SiVar s = m_s * SiVar::MetersPerSecond();
   std::cout << "  Average Lap Speed: " << s << ".\n";
+  return Status::OkStatus();
+}
+
+Status ParseAvgWatts(const XmlNode* node, TimeSeries* series) {
+  const std::string* watts;
+  RETURN_IF_ERROR(ChildCountEquals(node, 1));
+  RETURN_IF_ERROR(ContainsOneTextChild(node, &watts));
+  int power;
+  RETURN_IF_ERROR(ExtractInt(*watts, &power));
+  const SiVar s = power * SiVar::Watt();
+  std::cout << "  Average Lap Watts: " << s << ".\n";
+  return Status::OkStatus();
+}
+
+Status ParseMaxWatts(const XmlNode* node, TimeSeries* series) {
+  const std::string* watts;
+  RETURN_IF_ERROR(ChildCountEquals(node, 1));
+  RETURN_IF_ERROR(ContainsOneTextChild(node, &watts));
+  int power;
+  RETURN_IF_ERROR(ExtractInt(*watts, &power));
+  const SiVar s = power * SiVar::Watt();
+  std::cout << "  Maximum Lap Watts: " << s << ".\n";
   return Status::OkStatus();
 }
 
@@ -677,7 +772,11 @@ std::unique_ptr<TimeSeries> ParseTcxFile(const std::string& path) {
   std::unique_ptr<XmlNode> node = xml_util::ParseXmlFile(path);
   if (!node) return nullptr;
   TimeSeries series;
-  std::cout << BeginParse(node.get(), &series) << std::endl;
+  const Status status = BeginParse(node.get(), &series);
+  if (!status.ok()) {
+    std::cerr << status << std::endl;
+    return nullptr;
+  }
   return make_unique<TimeSeries>(std::move(series));
 }
 

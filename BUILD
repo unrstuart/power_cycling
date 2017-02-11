@@ -300,7 +300,13 @@ cc_test(
         ":tcx_util",
     ],
     data = [
-        "tcx_util_test_data.tcx",
+        "310_outdoor_run.tcx",
+        "fenix3_indoor_intervals_run.tcx",
+        "fenix3_indoor_ride.tcx",
+        "fenix3_outdoor_interval_run.tcx",
+        "fenix3_outdoor_long_run.tcx",
+        "fenix3_outdoor_ride.tcx",
+        "trainerroad_ride.tcx",
     ],
     linkstatic = 1,
 )
