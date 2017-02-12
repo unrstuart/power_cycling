@@ -9,35 +9,38 @@ TimeSample::TimeSample(const TimePoint& time) : time_(time) {}
 
 TimeSample::TimeSample(const TimePoint& time, const Measurement& m)
     : time_(time) {
+  has_[m.type()] = true;
   measurements_[m.type()] = m.value();
 }
 
 TimeSample::TimeSample(const TimePoint& time,
                        const std::vector<Measurement>& measurements)
     : time_(time) {
-  for (const auto& m : measurements) {
-    measurements_[m.type()] = m.value();
-  }
+  for (const auto& m : measurements) Add(m);
 }
 
-TimeSample TimeSample::Add(const Measurement& m) const {
-  TimeSample t = *this;
-  t.measurements_[m.type()] = m.value();
-  return t;
+TimeSample& TimeSample::Add(const Measurement& m) {
+  has_[m.type()] = true;
+  measurements_[m.type()] = m.value();
+  return *this;
 }
 
 bool TimeSample::has_value(const Measurement::Type type) const {
-  return measurements_.find(type) != measurements_.end();
+  return has_[type];
 }
 
 SiVar TimeSample::value(const Measurement::Type type) const {
-  auto it = measurements_.find(type);
-  assert(it != measurements_.end());
-  return it->second;
+  assert(has_value(type));
+  return measurements_[type];
 }
 
 bool TimeSample::operator==(const TimeSample& rhs) const {
-  return time_ == rhs.time_ && measurements_ == rhs.measurements_;
+  if (time_ != rhs.time_) return false;
+  for (int i = 0; i < Measurement::NUM_MEASUREMENTS; ++i) {
+    if (has_[i] != rhs.has_[i]) return false;
+    if (has_[i] && measurements_[i] != rhs.measurements_[i]) return false;
+  }
+  return true;
 }
 
 bool TimeSample::operator!=(const TimeSample& rhs) const {
@@ -46,7 +49,13 @@ bool TimeSample::operator!=(const TimeSample& rhs) const {
 
 bool TimeSample::operator<(const TimeSample& rhs) const {
   if (time_ != rhs.time_) return time_ < rhs.time_;
-  return measurements_ < rhs.measurements_;
+  for (int i = 0; i < Measurement::NUM_MEASUREMENTS; ++i) {
+    if (has_[i] != rhs.has_[i]) return !has_[i];
+    if (has_[i] && measurements_[i] != rhs.measurements_[i]) {
+      return measurements_[i] < rhs.measurements_[i];
+    }
+  }
+  return false;
 }
 
 bool TimeSample::operator>(const TimeSample& rhs) const {
@@ -65,18 +74,12 @@ bool TimeSample::operator>=(const TimeSample& rhs) const {
 std::ostream& operator<<(std::ostream& lhs, const TimeSample& rhs) {
   const std::time_t time = std::chrono::system_clock::to_time_t(rhs.time());
   lhs << std::ctime(&time) << " {";
-  for (const auto& p : rhs) {
-    lhs << ' ' << p.second.ToString();
+  for (int i = 0; i < Measurement::NUM_MEASUREMENTS; ++i) {
+    const Measurement::Type m = static_cast<Measurement::Type>(i);
+    if (!rhs.has_value(m)) continue;
+    lhs << ' ' << rhs.value(m);
   }
-  return lhs;
-}
-
-TimeSample::const_iterator TimeSample::begin() const {
-  return measurements_.begin();
-}
-
-TimeSample::const_iterator TimeSample::end() const {
-  return measurements_.end();
+  return lhs << " }";
 }
 
 }  // namespace cycling

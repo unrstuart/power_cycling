@@ -21,6 +21,8 @@ cc_library(
         ":measurement",
         ":si_unit",
         ":si_var",
+        ":string_buffer",
+        ":tcx_util",
         ":time_series",
     ],
 )
@@ -65,6 +67,13 @@ cc_library(
     name = "str_util",
     srcs = ["str_util.cc"],
     hdrs = ["str_util.h"],
+    deps = [],
+)
+
+cc_library(
+    name = "string_buffer",
+    srcs = ["string_buffer.cc"],
+    hdrs = ["string_buffer.h"],
     deps = [],
 )
 

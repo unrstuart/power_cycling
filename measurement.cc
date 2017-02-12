@@ -48,6 +48,9 @@ Measurement::Measurement(const Type type, const double coef) : type_(type) {
     case TOTAL_JOULES:
       value_ = SiVar(SiUnit::Joule(), coef);
       break;
+    case NUM_MEASUREMENTS:
+      assert(false);
+      break;
   }
 }
 
@@ -76,6 +79,9 @@ Measurement::Measurement(const Type type, const SiVar& var)
       break;
     case TOTAL_JOULES:
       assert(value_.unit() == SiUnit::Joule());
+      break;
+    case NUM_MEASUREMENTS:
+      assert(false);
       break;
   }
 }
@@ -107,6 +113,9 @@ std::string Measurement::ToString() const {
       return DtoA(value_.coef() / 1000.0) + " km";
     case TOTAL_JOULES:
       return DtoA(value_.coef() / 4.814) + " total kCal";
+    case NUM_MEASUREMENTS:
+      assert(false);
+      return "";
   }
 }
 

@@ -51,12 +51,18 @@ TEST(TimeSampleTest, ValueAndAddAndIterator) {
 
   TimeSample s0(tp);
 
-  TimeSample s1 = s0.Add(Bpm180());
-  TimeSample s2 = s1.Add(Bpm180());
-  TimeSample s3 = s0.Add(Watts150());
-  TimeSample s4 = s3.Add(Watts150());
-  TimeSample s5 = s2.Add(Watts150());
-  TimeSample s6 = s3.Add(Bpm180());
+  TimeSample s1 = s0;
+  s1.Add(Bpm180());
+  TimeSample s2 = s1;
+  s2.Add(Bpm180());
+  TimeSample s3 = s0;
+  s3.Add(Watts150());
+  TimeSample s4 = s3;
+  s4.Add(Watts150());
+  TimeSample s5 = s2;
+  s5.Add(Watts150());
+  TimeSample s6 = s3;
+  s6.Add(Bpm180());
 
   EXPECT_EQ(s1, s2);
   EXPECT_EQ(s3, s4);
@@ -68,13 +74,8 @@ TEST(TimeSampleTest, ValueAndAddAndIterator) {
   EXPECT_EQ(s1.time(), s2.time());
   EXPECT_EQ(s0.time(), s2.time());
 
-  bool has_power = false, has_hr = false;
-  for (const auto& p : s5) {
-    if (p.first == Measurement::POWER) has_power = true;
-    if (p.first == Measurement::HEART_RATE) has_hr = true;
-  }
-  EXPECT_TRUE(has_power);
-  EXPECT_TRUE(has_hr);
+  EXPECT_TRUE(s5.has_value(Measurement::POWER));
+  EXPECT_TRUE(s5.has_value(Measurement::HEART_RATE));
 }
 
 }  // namespace

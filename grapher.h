@@ -42,7 +42,7 @@ class Grapher {
     // The maximum y value displayed.
     double max_y;
     // Labels of coefficients that can be displayed on the y-axis.
-    std::map<double, int> labels;
+    std::vector<std::pair<double, int>> labels;
     // The points to be plotted. first=x, second=y.
     std::vector<Point> points;
   };

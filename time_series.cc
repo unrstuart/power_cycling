@@ -32,7 +32,9 @@ void TimeSeries::Visit(const TimePoint& begin, const TimePoint& end,
   auto b = std::lower_bound(samples_.begin(), samples_.end(), begin);
   if (b == samples_.end()) b = samples_.begin();
   while (b != samples_.end() && b->time() <= end) {
-    if (b->has_value(type)) visitor(b->time(), b->value(type).coef());
+    if (b->has_value(type)) {
+      visitor(b->time(), b->value(type).coef());
+    }
     ++b;
   }
 }

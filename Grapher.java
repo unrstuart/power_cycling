@@ -8,42 +8,77 @@ import java.util.concurrent.atomic.*;
 import javax.swing.*;
 
 public class Grapher extends JPanel {
-  protected Frame frames_[];
-  protected Image buffer_;
-  private static final int kPadding = 5;
-  protected AtomicInteger current_frame_ = new AtomicInteger(0);
-  protected long start_drawing_at_ = 0;
+  private Frame frames_[][];
+  private AtomicInteger current_frame_ = new AtomicInteger(0);
+  private long start_drawing_at_ = 0;
+  private GrapherPanel graphers_[];
 
   public static void main(String args[]) throws Exception {
     JFrame frame = new JFrame("grapher");
 
-    Grapher grapher = new Grapher();
+    Grapher grapher = new Grapher(args[0]);
     System.err.printf("done creating grapher.\n");
     Container c = frame.getContentPane();
     c.setLayout(new FlowLayout());
     c.add(grapher);
+    frame.setLocation(100, 100);
     frame.pack();
-    System.err.printf("packed: %s.\n", grapher.getBounds());
     frame.setVisible(true);
     grapher.Go();
   }
 
-  public Grapher() throws Exception {
-    DataInputStream in =
-        new DataInputStream(
-            new BufferedInputStream(
-                new FileInputStream("time_series.out")));
+  public Grapher(String input_file) throws Exception {
+    DataInputStream in = new DataInputStream(
+        new BufferedInputStream(new FileInputStream(input_file)));
 
-    Vector<Frame> frames = new Vector<Frame>();
-    Frame frame;
-    while ((frame = Frame.ReadNextFrame(in)) != null) {
-      frames.add(frame);
-      System.err.printf("\r%d", frames.size());
+    int num_fields = Integer.reverseBytes(in.readInt());
+    String captions[] = new String[num_fields];
+    for (int i = 0; i < captions.length; ++i) {
+      int size = Integer.reverseBytes(in.readInt());
+      byte buf[] = new byte[size];
+      in.readFully(buf);
+      captions[i] = new String(buf);
     }
-    frames_ = frames.toArray(new Frame[0]);
-    System.err.printf("\n");
+    int num_frames = Integer.reverseBytes(in.readInt());
+    frames_ = new Frame[num_fields][num_frames];
+    Frame frame;
+    for (int i = 0; i < num_frames; ++i) {
+      for (int j = 0; j < num_fields; ++j) {
+        frames_[j][i] = Frame.ReadNextFrame(in);
+      }
+    }
     in.close();
-    System.err.printf("Read %d frames.\n", frames_.length);
+
+    graphers_ = new GrapherPanel[num_fields];
+    BoxLayout main_layout = new BoxLayout(this, BoxLayout.PAGE_AXIS);
+    setLayout(main_layout);
+    JPanel panels[] = new JPanel[num_fields];
+    Color line_colors[] = {
+        new Color(255, 255, 0), new Color(255, 0, 255), new Color(0, 255, 255),
+        new Color(255, 128, 128),
+    };
+    Color fill_colors[] = {
+        new Color(255, 255, 0, 128), new Color(255, 0, 255, 128),
+        new Color(0, 255, 255, 128), new Color(255, 128, 128, 128),
+    };
+    for (int i = 0; i < panels.length; ++i) {
+      panels[i] = new JPanel();
+      graphers_[i] = new GrapherPanel(line_colors[i], fill_colors[i]);
+      JLabel label = new JLabel(captions[i]);
+      panels[i].setLayout(new BoxLayout(panels[i], BoxLayout.PAGE_AXIS));
+      panels[i].add(label);
+      panels[i].add(graphers_[i]);
+    };
+    JPanel line0 = new JPanel();
+    JPanel line1 = new JPanel();
+    BoxLayout line0_layout = new BoxLayout(line0, BoxLayout.LINE_AXIS);
+    BoxLayout line1_layout = new BoxLayout(line1, BoxLayout.LINE_AXIS);
+    line0.add(panels[0]);
+    line0.add(panels[1]);
+    line1.add(panels[2]);
+    line1.add(panels[3]);
+    add(line0);
+    add(line1);
   }
 
   private void Go() {
@@ -52,12 +87,16 @@ public class Grapher extends JPanel {
   }
 
   private void Update() {
-    int fps = 100;
-    int frame = (int)((System.currentTimeMillis() - start_drawing_at_) / 1000.0 * fps);
+    int fps = 30;
+    int frame =
+        (int)((System.currentTimeMillis() - start_drawing_at_) / 1000.0 * fps);
     if (current_frame_.get() != frame) {
       current_frame_.set(frame);
     }
-    repaint();
+    for (int i = 0; i < graphers_.length; ++i) {
+      graphers_[i].setFrame(frames_[i][frame]);
+      graphers_[i].repaint();
+    }
   }
 
   private class UpdaterRunner implements Runnable {
@@ -67,26 +106,33 @@ public class Grapher extends JPanel {
         try {
           Thread.sleep(1);
           Update();
-        } catch (Exception e){}
+        } catch (Exception e) {
+        }
       }
     }
   }
+}
 
-  public Dimension getPreferredSize() {
-    return new Dimension(500, 500);
+class GrapherPanel extends JPanel {
+  private Frame frame_ = null;
+  private Color line_color_ = null;
+  private Color fill_color_ = null;
+  private static final int kPadding = 5;
+  public GrapherPanel(Color line_color, Color fill_color) {
+    line_color_ = line_color;
+    fill_color_ = fill_color;
   }
+  public Dimension getMinimumSize() { return new Dimension(300, 300); }
+  public Dimension getMaximumSize() { return getMinimumSize(); }
+  public Dimension getPreferredSize() { return getMinimumSize(); }
 
-  public Dimension getMinimumSize() {
-    return new Dimension(500, 500);
+  public void setFrame(Frame frame) {
+    frame_ = frame;
   }
-
-  public Dimension getMaximumSize() {
-    return new Dimension(500, 500);
-  }
-
-  public void RenderFrame(int index, Graphics2D g2d) {
-    Frame frame = frames_[index];
-
+  public void paint(Graphics g) {
+    Frame frame = frame_;
+    if (frame == null) return;
+    Graphics2D g2d = (Graphics2D)g;
     int kPadding = 40;
     int full_width = getWidth();
     int width = getWidth() - kPadding, height = getHeight();
@@ -103,14 +149,14 @@ public class Grapher extends JPanel {
       int y = height - (int)(l.y * height);
       g2d.drawLine(0, y, width, y);
     }
-    g2d.setColor(Color.YELLOW);
+    g2d.setColor(line_color_);
     Path2D.Double path = new Path2D.Double();
     g2d.setClip(0, 0, width, height);
     boolean first = true;
     int first_x = 0, last_x = 0;
     for (Frame.Point p : frame.points) {
-      int x = (int) (p.x * width);
-      int y = height - (int) (p.y * height);
+      int x = (int)(p.x * width);
+      int y = height - (int)(p.y * height);
       if (first) {
         first_x = x;
         path.moveTo(x, y);
@@ -125,14 +171,9 @@ public class Grapher extends JPanel {
     path.closePath();
     path.setWindingRule(Path2D.WIND_NON_ZERO);
     g2d.draw(path);
-    g2d.setPaint(new Color(255, 255, 0, 128));
+    g2d.setPaint(fill_color_);
     g2d.setStroke(new BasicStroke(0.0f));
     g2d.fill(path);
-  }
-
-  public void paint(Graphics g) {
-    Graphics2D g2d = (Graphics2D)g;
-    RenderFrame(current_frame_.get(), g2d);
   }
 }
 
@@ -142,9 +183,7 @@ class Frame {
     int value;
   }
 
-  public static class Point {
-    double x, y;
-  }
+  public static class Point { double x, y; }
 
   public Label labels[];
   public Point points[];

@@ -2,7 +2,6 @@
 #define __TIME_SERIES_H__
 
 #include <functional>
-#include <map>
 
 #include "time_sample.h"
 
@@ -31,6 +30,7 @@ class TimeSeries {
   void Add(TimeSample&& sample);
   TimePoint BeginTime() const;
   TimePoint EndTime() const;
+  int num_samples() const { return samples_.size(); }
 
   // Calls visitor for every measurement of type `type` in the range
   // [begin,end).

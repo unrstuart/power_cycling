@@ -12,7 +12,7 @@ namespace cycling {
 class Measurement {
  public:
   enum Type {
-    NO_TYPE,
+    NO_TYPE = 0,
     // The latitude of the point, in degrees. Unitless.
     DEGREES_LATITUDE,
     // The longitude of the point, in degrees. Unitless.
@@ -37,6 +37,8 @@ class Measurement {
     TOTAL_DISTANCE,
     // The total joules burned thus far, up to and including this sample.
     TOTAL_JOULES,
+
+    NUM_MEASUREMENTS,
   };
 
   // Constructs a new measurement with the appropriate units. coef is for the

@@ -328,7 +328,7 @@ Status ParseAndPrintTextParent(const std::string& prefix, const XmlNode* node,
                                TimeSeries* series) {
   const std::string* text;
   RETURN_IF_ERROR(ContainsOneTextChild(node, &text));
-  std::cout << prefix << ": '" << *text << "'.\n";
+  // std::cout << prefix << ": '" << *text << "'.\n";
   return Status::OkStatus();
 }
 
@@ -385,7 +385,6 @@ Status ParseLap(const XmlNode* node, TimeSeries* series) {
       {TRIGGER_METHOD, ParseTriggerMethod},
       {TRACK, ParseTrack},
   };
-  std::cout << "parsing new lap:\n";
   RETURN_IF_ERROR(ParseWithHandlers(node, kHandlers, series));
   return Status::OkStatus();
 }
@@ -437,7 +436,7 @@ Status ParseTotalTimeSeconds(const XmlNode* node, TimeSeries* series) {
   double d;
   RETURN_IF_ERROR(ExtractDouble(*time, &d));
   SiVar var(SiUnit::Second(), d);
-  std::cout << "  Total Lap Time: " << var << "\n";
+  // std::cout << "  Total Lap Time: " << var << "\n";
   return Status::OkStatus();
 }
 
@@ -447,7 +446,7 @@ Status ParseDistanceMeters(const XmlNode* node, TimeSeries* series) {
   double d;
   RETURN_IF_ERROR(ExtractDouble(*dist, &d));
   SiVar var(SiUnit::Meter(), d);
-  std::cout << "  Total Lap Distance: " << var << "\n";
+  // std::cout << "  Total Lap Distance: " << var << "\n";
   return Status::OkStatus();
 }
 
@@ -457,7 +456,7 @@ Status ParseMaximumSpeed(const XmlNode* node, TimeSeries* series) {
   double d;
   RETURN_IF_ERROR(ExtractDouble(*speed, &d));
   SiVar var(SiUnit::MetersPerSecond(), d);
-  std::cout << "  Maximum Lap Speed: " << var << "\n";
+  // std::cout << "  Maximum Lap Speed: " << var << "\n";
   return Status::OkStatus();
 }
 
@@ -466,7 +465,7 @@ Status ParseCadence(const XmlNode* node, TimeSeries* series) {
   RETURN_IF_ERROR(ContainsOneTextChild(node, &steps));
   int spm;
   RETURN_IF_ERROR(ExtractInt(*steps, &spm));
-  std::cout << "  Average Cadence: " << spm << "\n";
+  // std::cout << "  Average Cadence: " << spm << "\n";
   return Status::OkStatus();
 }
 
@@ -485,7 +484,7 @@ Status ParseCalories(const XmlNode* node, TimeSeries* series) {
   double d;
   RETURN_IF_ERROR(ExtractDouble(*cals, &d));
   SiVar var = 4.184 * d * SiVar::Joule();
-  std::cout << "  Total Lap Energy: " << var << "\n";
+  // std::cout << "  Total Lap Energy: " << var << "\n";
   return Status::OkStatus();
 }
 
@@ -503,14 +502,14 @@ Status ParseHeartRate(const XmlNode* node, int* bpm) {
 Status ParseAverageHeartRateBpm(const XmlNode* node, TimeSeries* series) {
   int bpm;
   RETURN_IF_ERROR(ParseHeartRate(node, &bpm));
-  std::cout << "  Average Lap HR: " << bpm << " (bpm)\n";
+  // std::cout << "  Average Lap HR: " << bpm << " (bpm)\n";
   return Status::OkStatus();
 }
 
 Status ParseMaximumHeartRateBpm(const XmlNode* node, TimeSeries* series) {
   int bpm;
   RETURN_IF_ERROR(ParseHeartRate(node, &bpm));
-  std::cout << "  Maximum Lap HR: " << bpm << " (bpm)\n";
+  // std::cout << "  Maximum Lap HR: " << bpm << " (bpm)\n";
   return Status::OkStatus();
 }
 
@@ -530,6 +529,10 @@ Status ParseTrack(const XmlNode* node, TimeSeries* series) {
     RETURN_IF_ERROR(EntityMatches(kid.get(), node, TRACKPOINT));
     TimeSample sample;
     RETURN_IF_ERROR(ParseTrackpoint(kid.get(), &sample));
+    if (series->num_samples() > 0 && series->EndTime() == sample.time()) {
+      sample.set_time(sample.time() + std::chrono::microseconds(1));
+    }
+    series->Add(sample);
   }
   return Status::OkStatus();
 }
@@ -623,9 +626,7 @@ Status ParseExtensionsSample(const XmlNode* node, TimeSample* sample) {
 Status ParseTpx(const XmlNode* node, TimeSample* sample) {
   RETURN_IF_ERROR(ChildCountGreaterThan(node, 0));
   const std::map<TcxEntity, SampleHandler> kHandlers = {
-      {SPEED, ParseSpeed},
-      {WATTS, ParseWatts},
-      {RUN_CADENCE, ParseRunCadence},
+      {SPEED, ParseSpeed}, {WATTS, ParseWatts}, {RUN_CADENCE, ParseRunCadence},
   };
   RETURN_IF_ERROR(ParseWithHandlers(node, kHandlers, sample));
   return Status::OkStatus();
@@ -689,7 +690,7 @@ Status ParseMaxRunCadence(const XmlNode* node, TimeSeries* series) {
   RETURN_IF_ERROR(ContainsOneTextChild(node, &cadence));
   int spm;
   RETURN_IF_ERROR(ExtractInt(*cadence, &spm));
-  std::cout << "  Maximum Lap Cadence: " << spm << " spm.\n";
+  // std::cout << "  Maximum Lap Cadence: " << spm << " spm.\n";
   return Status::OkStatus();
 }
 
@@ -699,7 +700,7 @@ Status ParseAvgRunCadence(const XmlNode* node, TimeSeries* series) {
   RETURN_IF_ERROR(ContainsOneTextChild(node, &cadence));
   int spm;
   RETURN_IF_ERROR(ExtractInt(*cadence, &spm));
-  std::cout << "  Average Lap Cadence: " << spm << " spm.\n";
+  // std::cout << "  Average Lap Cadence: " << spm << " spm.\n";
   return Status::OkStatus();
 }
 
@@ -710,7 +711,7 @@ Status ParseAvgSpeed(const XmlNode* node, TimeSeries* series) {
   double m_s;
   RETURN_IF_ERROR(ExtractDouble(*speed, &m_s));
   const SiVar s = m_s * SiVar::MetersPerSecond();
-  std::cout << "  Average Lap Speed: " << s << ".\n";
+  // std::cout << "  Average Lap Speed: " << s << ".\n";
   return Status::OkStatus();
 }
 
@@ -721,7 +722,7 @@ Status ParseAvgWatts(const XmlNode* node, TimeSeries* series) {
   int power;
   RETURN_IF_ERROR(ExtractInt(*watts, &power));
   const SiVar s = power * SiVar::Watt();
-  std::cout << "  Average Lap Watts: " << s << ".\n";
+  // std::cout << "  Average Lap Watts: " << s << ".\n";
   return Status::OkStatus();
 }
 
@@ -732,7 +733,7 @@ Status ParseMaxWatts(const XmlNode* node, TimeSeries* series) {
   int power;
   RETURN_IF_ERROR(ExtractInt(*watts, &power));
   const SiVar s = power * SiVar::Watt();
-  std::cout << "  Maximum Lap Watts: " << s << ".\n";
+  // std::cout << "  Maximum Lap Watts: " << s << ".\n";
   return Status::OkStatus();
 }
 
@@ -742,7 +743,7 @@ Status ParseSteps(const XmlNode* node, TimeSeries* series) {
   RETURN_IF_ERROR(ContainsOneTextChild(node, &steps));
   int s;
   RETURN_IF_ERROR(ExtractInt(*steps, &s));
-  std::cout << "  Total Lap Steps: " << s << " steps.\n";
+  // std::cout << "  Total Lap Steps: " << s << " steps.\n";
   return Status::OkStatus();
 }
 

@@ -5,11 +5,14 @@
 #include <algorithm>
 #include <chrono>
 #include <map>
+#include <sstream>
 #include <vector>
 
 #include "grapher.h"
 #include "measurement.h"
 #include "si_var.h"
+#include "string_buffer.h"
+#include "tcx_util.h"
 #include "time_series.h"
 
 namespace cycling {
@@ -76,62 +79,70 @@ SiVar ComputeSpeed(const SiVar& power, const SiVar& rider_weight,
   return speed;
 }
 
-void DumpTimeSeries() {
+void DumpTimeSeries(const std::string& file_path) {
   using Duration = std::chrono::system_clock::duration;
-  using Time = std::chrono::system_clock::time_point;
 
-  const double kMinHr = 39;
-  const double kMaxHr = 185;
-  const double kSamplePeriod = 100;
-  const int kNumSamples = 1200;
-  const Duration kWindow = std::chrono::seconds(30);
-  const Duration kIncrement = std::chrono::seconds(1);
-  const Duration kLookBehind = std::chrono::seconds(3);
-  const int kNumFrames = 30;
-
-  TimeSeries time_series;
-  const Time start = std::chrono::system_clock::from_time_t(0);
-
-  for (int i = 0; i < kNumSamples; ++i) {
-    double hr;
-    if (false) {
-      hr = i;
-    } else {
-      hr = kMinHr + (kMaxHr - kMinHr) / 2.0 +
-           (kMaxHr - kMinHr) * std::sin(M_PI * (i / kSamplePeriod) * 2) / 2.0;
-    }
-    time_series.Add(TimeSample(start + std::chrono::milliseconds(i * 1000),
-                               Measurement(Measurement::HEART_RATE, hr)));
+  std::unique_ptr<TimeSeries> series = ParseTcxFile(file_path);
+  if (!series) {
+    std::cerr << "Couldn't read " << file_path << ", skipping." << std::endl;
+    return;
   }
+  FILE* fp = fopen((file_path + "-time_series.out").c_str(), "w");
 
-  FILE* fp = fopen("time_series.out", "w");
-
+  const Duration kWindow = std::chrono::seconds(300);
+  const Duration kIncrement = std::chrono::seconds(1);
+  const Duration kLookBehind = std::chrono::seconds(5);
+  const int kNumFrames = 30;
+  const int kNumSamples =
+      series->EndTime().time_since_epoch().count() / 1000000 -
+      series->BeginTime().time_since_epoch().count() / 1000000;
   Grapher grapher(kWindow, kIncrement, kLookBehind);
 
-  for (int i = 0; i < kNumSamples; ++i) {
-    for (int frame = 0; frame < kNumFrames; ++frame) {
-      Grapher::Graph graph = grapher.Plot(
-          time_series, start + std::chrono::seconds(i), Measurement::HEART_RATE,
-          1.0, frame / static_cast<double>(kNumFrames));
-      int num_labels = graph.labels.size();
-      int num_points = graph.points.size();
+  int str_size;
+  const char* kCaptions[] = {
+      "Heart Rate", "Power", "Speed", "Cadence",
+  };
+  const int num_fields = sizeof(kCaptions) / sizeof(kCaptions[0]);
+  fwrite(&num_fields, sizeof(num_fields), 1, fp);
+  for (const char* caption : kCaptions) {
+    str_size = strlen(caption);
+    fwrite(&str_size, sizeof(str_size), 1, fp);
+    fwrite(caption, str_size, 1, fp);
+  }
 
-      fwrite(&num_labels, sizeof(num_labels), 1, fp);
-      fwrite(&num_points, sizeof(num_points), 1, fp);
-      for (const auto& label : graph.labels) {
-        fwrite(&label.first, sizeof(label.first), 1, fp);
-        fwrite(&label.second, sizeof(label.second), 1, fp);
-      }
-      for (const auto& point : graph.points) {
-        fwrite(&point.x, sizeof(point.x), 1, fp);
-        fwrite(&point.y, sizeof(point.y), 1, fp);
+  const int total_frames = kNumFrames * kNumSamples;
+  fwrite(&total_frames, sizeof(total_frames), 1, fp);
+  int last = -1;
+  for (int i = 0; i < kNumSamples; ++i) {
+    double num = kNumSamples;
+    StringBuffer buffer;
+    if (std::floor(last / num * 100) < std::floor(i / num * 100)) {
+      printf("%5.1f%%\r", i / num * 100);
+      fflush(stdout);
+      last = i;
+    }
+    for (int frame = 0; frame < kNumFrames; ++frame) {
+      for (const auto m : {Measurement::HEART_RATE, Measurement::POWER,
+                           Measurement::SPEED, Measurement::CADENCE}) {
+        Grapher::Graph graph =
+            grapher.Plot(*series, series->BeginTime() + std::chrono::seconds(i),
+                         m, 1.0, frame / static_cast<double>(kNumFrames));
+
+        int num_labels = graph.labels.size();
+        int num_points = graph.points.size();
+
+        buffer.Add(num_labels).Add(num_points);
+        buffer.Add(graph.labels.data(), graph.labels.size());
+        buffer.Add(graph.points.data(), graph.points.size());
       }
     }
+    fwrite(buffer.str(), buffer.size(), 1, fp);
   }
+  printf("100.0%%\n");
   fclose(fp);
 }
 
-int Main() {
+int Main(int argc, char** argv) {
   const SiVar rider_weight = 85 * SiVar::Kilogram();
 
   for (int power_coef = 10; power_coef <= 500; power_coef += 10) {
@@ -143,7 +154,12 @@ int Main() {
            speed.ToString().c_str());
   }
 
-  DumpTimeSeries();
+  for (int i = 1; i < argc; ++i) {
+    std::cerr
+        << "Loading " << argv[i]
+        << " and converting HR, speed, cadence, and power to time series.\n";
+    DumpTimeSeries(argv[i]);
+  }
 
   return 0;
 }
@@ -151,4 +167,4 @@ int Main() {
 }  // namespace
 }  // namespace cycling
 
-int main(int argc, char** argv) { return cycling::Main(); }
+int main(int argc, char** argv) { return cycling::Main(argc, argv); }
