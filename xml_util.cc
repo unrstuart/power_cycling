@@ -165,7 +165,7 @@ const XmlNode* FindNextNode(const std::string& name, const XmlNode* parent,
 
 std::unique_ptr<XmlNode> ParseXmlContents(const std::string& contents) {
   xmlDoc* doc =
-      xmlReadMemory(contents.data(), contents.size(), "noname.xml", nullptr, 0);
+      xmlReadMemory(contents.data(), static_cast<int>(contents.size()), "noname.xml", nullptr, 0);
   if (doc == nullptr) {
     fprintf(stderr, "Failed to parse document\n");
     return nullptr;

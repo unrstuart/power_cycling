@@ -8,10 +8,14 @@ import java.util.concurrent.atomic.*;
 import javax.swing.*;
 
 public class Grapher extends JPanel {
-  private Frame frames_[][];
+  private TreeMap<Integer, Frame[]> frames_;
   private AtomicInteger current_frame_ = new AtomicInteger(0);
   private long start_drawing_at_ = 0;
   private GrapherPanel graphers_[];
+  private DataInputStream in_;
+  private int last_read_frame_ = -1;
+  private int num_fields_;
+  private int num_frames_;
 
   public static void main(String args[]) throws Exception {
     JFrame frame = new JFrame("grapher");
@@ -28,31 +32,24 @@ public class Grapher extends JPanel {
   }
 
   public Grapher(String input_file) throws Exception {
-    DataInputStream in = new DataInputStream(
+    in_ = new DataInputStream(
         new BufferedInputStream(new FileInputStream(input_file)));
 
-    int num_fields = Integer.reverseBytes(in.readInt());
-    String captions[] = new String[num_fields];
+    num_fields_ = Integer.reverseBytes(in_.readInt());
+    String captions[] = new String[num_fields_];
     for (int i = 0; i < captions.length; ++i) {
-      int size = Integer.reverseBytes(in.readInt());
+      int size = Integer.reverseBytes(in_.readInt());
       byte buf[] = new byte[size];
-      in.readFully(buf);
+      in_.readFully(buf);
       captions[i] = new String(buf);
     }
-    int num_frames = Integer.reverseBytes(in.readInt());
-    frames_ = new Frame[num_fields][num_frames];
-    Frame frame;
-    for (int i = 0; i < num_frames; ++i) {
-      for (int j = 0; j < num_fields; ++j) {
-        frames_[j][i] = Frame.ReadNextFrame(in);
-      }
-    }
-    in.close();
+    num_frames_ = Integer.reverseBytes(in_.readInt());
+    frames_ = new TreeMap<Integer, Frame[]>();
 
-    graphers_ = new GrapherPanel[num_fields];
+    graphers_ = new GrapherPanel[num_fields_];
     BoxLayout main_layout = new BoxLayout(this, BoxLayout.PAGE_AXIS);
     setLayout(main_layout);
-    JPanel panels[] = new JPanel[num_fields];
+    JPanel panels[] = new JPanel[num_fields_];
     Color line_colors[] = {
         new Color(255, 255, 0), new Color(255, 0, 255), new Color(0, 255, 255),
         new Color(255, 128, 128),
@@ -86,15 +83,61 @@ public class Grapher extends JPanel {
     new Thread(new UpdaterRunner()).start();
   }
 
-  private void Update() {
-    int fps = 30;
+  private void ReadFrames() throws Exception {
+    TrimFrames();
+    while (last_read_frame_ < current_frame_.get() + 5) {
+      ++last_read_frame_;
+      if (last_read_frame_ == num_frames_) {
+        try {
+          in_.close();
+        } catch (Exception e) {
+          e.printStackTrace();
+          System.exit(0);
+        }
+        return;
+      }
+      Frame frames[] = new Frame[num_fields_];
+      for (int j = 0; j < num_fields_; ++j) {
+        frames[j] = Frame.ReadNextFrame(in_);
+      }
+      AddFrames(last_read_frame_, frames);
+    }
+  }
+
+  private void TrimFrames() {
+    synchronized (frames_) {
+      if (frames_.isEmpty())
+        return;
+      Integer i = frames_.firstKey();
+      if (i < current_frame_.get()) {
+        frames_.remove(i);
+      }
+    }
+  }
+
+  private void AddFrames(int index, Frame frames[]) {
+    synchronized (frames_) { frames_.put(index, frames); }
+  }
+
+  private void Update() throws Exception {
+    int fps = 100;
     int frame =
         (int)((System.currentTimeMillis() - start_drawing_at_) / 1000.0 * fps);
+    ReadFrames();
+    Frame frames[];
+    synchronized (frames_) {
+      Integer i = frames_.lastKey();
+      if (i == null)
+        return;
+      frames = frames_.get(current_frame_.get());
+      if (frames == null)
+        return;
+    }
     if (current_frame_.get() != frame) {
       current_frame_.set(frame);
     }
     for (int i = 0; i < graphers_.length; ++i) {
-      graphers_[i].setFrame(frames_[i][frame]);
+      graphers_[i].setFrame(frames[i]);
       graphers_[i].repaint();
     }
   }
@@ -107,6 +150,8 @@ public class Grapher extends JPanel {
           Thread.sleep(1);
           Update();
         } catch (Exception e) {
+          e.printStackTrace();
+          System.exit(1);
         }
       }
     }
@@ -126,12 +171,11 @@ class GrapherPanel extends JPanel {
   public Dimension getMaximumSize() { return getMinimumSize(); }
   public Dimension getPreferredSize() { return getMinimumSize(); }
 
-  public void setFrame(Frame frame) {
-    frame_ = frame;
-  }
+  public void setFrame(Frame frame) { frame_ = frame; }
   public void paint(Graphics g) {
     Frame frame = frame_;
-    if (frame == null) return;
+    if (frame == null || frame.points.length == 0)
+      return;
     Graphics2D g2d = (Graphics2D)g;
     int kPadding = 40;
     int full_width = getWidth();
@@ -180,7 +224,7 @@ class GrapherPanel extends JPanel {
 class Frame {
   public static class Label {
     double y;
-    int value;
+    long value;
   }
 
   public static class Point { double x, y; }
@@ -191,21 +235,14 @@ class Frame {
   // Reads the next frame from the InputStream. Returns null if no more frames
   // are available.
   static Frame ReadNextFrame(DataInputStream in) throws Exception {
-    int num_labels;
-    try {
-      num_labels = Integer.reverseBytes(in.readInt());
-    } catch (EOFException e) {
-      return null;
-    } catch (Exception e) {
-      throw e;
-    }
+    int num_labels = Integer.reverseBytes(in.readInt());
     int num_points = Integer.reverseBytes(in.readInt());
     Label labels[] = new Label[num_labels];
     Point points[] = new Point[num_points];
     for (int i = 0; i < labels.length; ++i) {
       labels[i] = new Label();
       labels[i].y = Double.longBitsToDouble(Long.reverseBytes(in.readLong()));
-      labels[i].value = Integer.reverseBytes(in.readInt());
+      labels[i].value = Long.reverseBytes(in.readLong());
     }
     for (int i = 0; i < points.length; ++i) {
       points[i] = new Point();

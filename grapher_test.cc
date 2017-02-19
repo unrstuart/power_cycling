@@ -34,12 +34,12 @@ TEST(GrapherTest, Plot) {
                                Measurement(Measurement::HEART_RATE, hr)));
   }
 
-  Grapher grapher(kWindow, kIncrement, kLookBehind);
-
   for (int i = 0; i < kNumSamples; ++i) {
     for (int frame = 0; frame < kNumFrames; ++frame) {
-      Grapher::Graph graph = grapher.Plot(
-          time_series, start + std::chrono::seconds(i), Measurement::HEART_RATE,
+      Grapher::Graph graph = Grapher::Plot(
+          time_series, start + std::chrono::seconds(i),
+          kWindow, kIncrement, kLookBehind,
+          Measurement::HEART_RATE,
           1.0, frame / static_cast<double>(kNumFrames));
       EXPECT_GE(graph.labels.size(), 1);
       EXPECT_FALSE(graph.points.empty());
@@ -49,3 +49,4 @@ TEST(GrapherTest, Plot) {
 
 }  // namespace
 }  // namespace cycling
+

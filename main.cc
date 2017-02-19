@@ -92,11 +92,10 @@ void DumpTimeSeries(const std::string& file_path) {
   const Duration kWindow = std::chrono::seconds(300);
   const Duration kIncrement = std::chrono::seconds(1);
   const Duration kLookBehind = std::chrono::seconds(5);
-  const int kNumFrames = 30;
+  const int kNumFrames = 5;
   const int kNumSamples =
       series->EndTime().time_since_epoch().count() / 1000000 -
       series->BeginTime().time_since_epoch().count() / 1000000;
-  Grapher grapher(kWindow, kIncrement, kLookBehind);
 
   int str_size;
   const char* kCaptions[] = {
@@ -124,9 +123,10 @@ void DumpTimeSeries(const std::string& file_path) {
     for (int frame = 0; frame < kNumFrames; ++frame) {
       for (const auto m : {Measurement::HEART_RATE, Measurement::POWER,
                            Measurement::SPEED, Measurement::CADENCE}) {
-        Grapher::Graph graph =
-            grapher.Plot(*series, series->BeginTime() + std::chrono::seconds(i),
-                         m, 1.0, frame / static_cast<double>(kNumFrames));
+        Grapher::Graph graph = Grapher::Plot(
+            *series, series->BeginTime() + std::chrono::seconds(i), kWindow,
+            kIncrement, kLookBehind, m, 1.0,
+            frame / static_cast<double>(kNumFrames));
 
         int num_labels = graph.labels.size();
         int num_points = graph.points.size();

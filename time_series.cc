@@ -3,8 +3,17 @@
 #include <cassert>
 
 #include <algorithm>
+#include <mutex>
 
 namespace cycling {
+  
+namespace {
+using MutexLock = std::lock_guard<std::mutex>;
+}  // namespace
+
+TimeSeries::TimeSeries() {
+  mutex_.reset(new std::mutex);
+}
 
 void TimeSeries::Add(const TimeSample& sample) {
   TimeSample s(sample);
@@ -12,20 +21,33 @@ void TimeSeries::Add(const TimeSample& sample) {
 }
 
 void TimeSeries::Add(TimeSample&& sample) {
-  assert(samples_.empty() || sample.time() > samples_.back().time());
+  MutexLock lock{*mutex_};
+  if (!samples_.empty()) {
+    assert(sample.time() > samples_.back().time());
+  }
   samples_.push_back(sample);
 }
 
 TimeSeries::TimePoint TimeSeries::BeginTime() const {
+  MutexLock lock{*mutex_};
   assert(!samples_.empty());
   return samples_.front().time();
 }
 
 TimeSeries::TimePoint TimeSeries::EndTime() const {
+  MutexLock lock{*mutex_};
   assert(!samples_.empty());
   return samples_.back().time();
 }
-
+  
+void TimeSeries::PrepareVisit() const {
+  mutex_->lock();
+}
+  
+void TimeSeries::FinishVisit() const {
+  mutex_->unlock();
+}
+  
 void TimeSeries::Visit(const TimePoint& begin, const TimePoint& end,
                        const Measurement::Type type,
                        const MeasurementVisitor& visitor) const {

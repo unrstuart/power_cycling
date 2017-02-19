@@ -2,13 +2,14 @@
 #define __TIME_SERIES_H__
 
 #include <functional>
+#include <mutex>
 
 #include "time_sample.h"
 
 namespace cycling {
 
 // Holds a collection of sequential, but not necessarily uniformly separated,
-// TimeSamples.
+// TimeSamples. This class is thread safe.
 class TimeSeries {
  public:
   using TimePoint = TimeSample::TimePoint;
@@ -17,7 +18,7 @@ class TimeSeries {
   using SampleVisitor =
       std::function<void(const TimeSample&)>;
 
-  TimeSeries() = default;
+  TimeSeries();
   TimeSeries(const TimeSeries&) = delete;
   TimeSeries(TimeSeries&& rhs) = default;
   ~TimeSeries() = default;
@@ -30,8 +31,11 @@ class TimeSeries {
   void Add(TimeSample&& sample);
   TimePoint BeginTime() const;
   TimePoint EndTime() const;
-  int num_samples() const { return samples_.size(); }
+  int num_samples() const { return static_cast<int>(samples_.size()); }
 
+  void PrepareVisit() const;
+  void FinishVisit() const;
+  
   // Calls visitor for every measurement of type `type` in the range
   // [begin,end).
   void Visit(const TimePoint& begin, const TimePoint& end,
@@ -44,6 +48,7 @@ class TimeSeries {
 
  private:
   std::vector<TimeSample> samples_;
+  mutable std::unique_ptr<std::mutex> mutex_;
 };
 
 }  // namespace cycling

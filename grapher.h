@@ -1,3 +1,6 @@
+#ifndef __GRAPHER_H__
+#define __GRAPHER_H__
+
 #include <chrono>
 #include <map>
 #include <vector>
@@ -29,6 +32,12 @@ class Grapher {
     double x, y;
   };
 
+  // A label on the graph with a y-axis location and an integral value.
+  struct Label {
+    double y;
+    int64_t value;
+  };
+
   // The result of a call to Plot.
   struct Graph {
     // The minimum time value plotted. Not necessarily the value of any of the
@@ -42,16 +51,10 @@ class Grapher {
     // The maximum y value displayed.
     double max_y;
     // Labels of coefficients that can be displayed on the y-axis.
-    std::vector<std::pair<double, int>> labels;
+    std::vector<Label> labels;
     // The points to be plotted. first=x, second=y.
     std::vector<Point> points;
   };
-
-  // Creates a new grapher using the given time-window parameters. No tranfer of
-  // ownership.
-  Grapher(const Duration& width, const Duration& increment,
-          const Duration& look_behind);
-  ~Grapher() = default;
 
   // stage is clamped to [0,1]. At 0, this object graphs with the contents
   // locked in the given window. At 1, this object graphs with the contents
@@ -69,14 +72,12 @@ class Grapher {
   //
   // The output graph is in the space x=[0,1],y=[0,1]. Any scaling must be done
   // outside by callers of this function.
-  Graph Plot(const TimeSeries& series, const TimePoint& current_time,
-             const Measurement::Type type, const double coef,
-             const double stage) const;
-
- private:
-  const Duration width_;
-  const Duration increment_;
-  const Duration look_behind_;
+  static Graph Plot(const TimeSeries& series, const TimePoint& current_time,
+                    const Duration& width, const Duration& increment,
+                    const Duration& look_behind, const Measurement::Type type,
+                    const double coef, const double stage);
 };
 
 }  // namespace cycling
+
+#endif  // __GRAPHER_H__
